@@ -1,4 +1,4 @@
-FROM node:24-alpine
+FROM node:lts-stretch-slim AS build
 
 WORKDIR /app
 

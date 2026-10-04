@@ -5,6 +5,8 @@ export const getHome = (req: Request, res: Response): void => {
     const message = getWelcomeMessage();
 
     res.json({
-        message
+        message,
+        method: req.method,
+        url: req.url
     });
 };

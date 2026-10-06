@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { ErrorFactory } from "../errors/ErrorFactory";
 
 export interface AuthenticatedRequest extends Request {
   user?: any;
@@ -13,13 +14,13 @@ export default function authMiddleware(
     const authHeader = req.headers.authorization;
 
     if(!authHeader){
-        return res.status(401).json({ error: "Token mancante" });
+        return next(ErrorFactory.missingToken());;
     }
 
     const jwt_divide = authHeader.split(" ");
 
     if (jwt_divide.length !== 2 || jwt_divide[0] !== "Bearer") {
-        return res.status(401).json({ error: "Token non valido" });
+        return next(ErrorFactory.invalidToken());
     }
 
     const [_, token] = jwt_divide;
@@ -32,7 +33,7 @@ export default function authMiddleware(
     } 
     catch (err)
     {
-        return res.status(403).json({ error: "Token non valido"});
+        return next(ErrorFactory.invalidToken());
     }
 
 }

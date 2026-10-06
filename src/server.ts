@@ -3,12 +3,11 @@ import app from "./app";
 import sequelize from "./config/database";
 import "./models/user";
 
-sequelize.sync();
-
 const PORT = Number(process.env.PORT || 3000);
 
 const main = async (): Promise<void> => {
     try {
+        await sequelize.sync();
         await sequelize.authenticate();
 
         console.log("Connessione a MySQL riuscita!");

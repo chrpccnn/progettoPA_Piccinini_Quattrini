@@ -1,15 +1,16 @@
-# Progetto Programmazione Avanzata
+# Progetto Programmazione Avanzata - Space Battleship 3D
 
-L'obiettivo del progetto è la realizzazione di un sistema di gestione di Space Battleship 3D, una variante spaziale e tridimensionale
+## 1. Obiettivo del progetto
+L'obiettivo del progetto è la realizzazione di un backend REST di Space Battleship 3D, una variante spaziale e tridimensionale
 della battaglia navale. 
 
-Backend REST sviluppato in **Node.js, Express, TypeScript, Sequelize e MySQL**, con ambiente containerizzato tramite Docker.
+Il sistema è sviluppato in **Node.js, Express, TypeScript, Sequelize e MySQL**, con ambiente containerizzato tramite Docker.
 
 Il progetto è strutturato a livelli, in modo da separare la gestione delle richieste HTTP, la logica applicativa e l'accesso al database.
 
 ---
 
-## 1. Tecnologie utilizzate
+## 2. Tecnologie utilizzate
 
 * **Node.js** — runtime JavaScript
 * **TypeScript** — linguaggio utilizzato per il codice sorgente
@@ -24,7 +25,7 @@ Il progetto è strutturato a livelli, in modo da separare la gestione delle rich
 
 ---
 
-# 2. Struttura del progetto
+# 3. Struttura del progetto
 
 La struttura prevista è la seguente:
 
@@ -39,6 +40,10 @@ progettopa_piccinini_quattrini/
 │   │   ├── indexController.ts
 │   │   └── authController.ts
 │   │
+│   ├── errors/
+│   │   ├── appError.ts
+│   │   └── ErrorFactory.ts
+│   │
 │   ├── middleware/
 │   │   ├── authMiddleware.ts
 │   │   ├── logger.ts
@@ -48,14 +53,15 @@ progettopa_piccinini_quattrini/
 │   ├── models/
 │   │   └── user.ts
 │   │
-│   ├── repositories/
-│   │   └── ...
+│   ├── repository/
+│   │   └── authRepository.ts
 │   │
 │   ├── routes/
 │   │   ├── authRoutes.ts
 │   │   └── index.ts
 │   │
 │   ├── services/
+│   │   ├── authService.ts
 │   │   └── indexService.ts
 │   │
 │   ├── types/
@@ -65,7 +71,7 @@ progettopa_piccinini_quattrini/
 │   └── server.ts
 │
 ├── tests/
-│   └── app.test.ts
+│   └── ...
 │
 ├── dist/
 │   └── ...
@@ -84,7 +90,7 @@ La cartella `dist/` viene generata automaticamente durante la compilazione TypeS
 
 ---
 
-# 3. Organizzazione del codice
+# 4. Organizzazione del codice
 
 Il progetto segue una separazione a livelli.
 
@@ -115,13 +121,21 @@ Client / Postman
       MySQL
 ```
 
+Le responsabilità principali sono:
+- **Route**: associa metodo HTTP e URL al controller e agli eventuali middleware.
+- **Controller**: riceve la richiesta HTTP, recupera i dati necessari, chiama il Service e costruisce la risposta.
+- **Service**: contiene la logica applicativa.
+- **Repository**: separa la logica applicativa dalle operazioni di persistenza eseguite tramite Sequelize.
+- **Model**: rappresenta le entità persistite nel database.
+- **Middleware**: gestisce funzionalità trasversali come logging, autenticazione, validazione ed error handling.
+
 La risposta segue il percorso inverso fino al client.
 
 Questa separazione permette di evitare di inserire tutta la logica all'interno delle route e rende il progetto più semplice da mantenere e testare.
 
 ---
 
-# 4. Cartella `src`
+# 5. Cartella `src`
 
 La cartella `src` contiene tutto il codice sorgente scritto in TypeScript.
 
@@ -145,7 +159,8 @@ Express
   │
   ├── express.json()
   ├── logger
-  ├── routes
+  ├── routes principali
+  ├── /auth routes
   └── errorHandler
 ```
 
@@ -158,8 +173,9 @@ Express
 Si occupa principalmente di:
 
 1. caricare le variabili d'ambiente;
-2. verificare la connessione al database;
-3. avviare il server HTTP.
+2. inizializzare i model Sequelize;
+3. verificare la connessione al database;
+4. avviare il server HTTP.
 
 La configurazione di Express rimane invece in `app.ts`.
 
@@ -167,7 +183,7 @@ Questa separazione permette anche di utilizzare `app.ts` direttamente nei test s
 
 ---
 
-# 5. `src/config`
+# 6. `src/config`
 
 Contiene la configurazione delle componenti esterne dell'applicazione.
 
@@ -186,15 +202,9 @@ Le credenziali e le configurazioni variabili non devono essere scritte direttame
 
 ---
 
-# 6. `src/routes`
+# 7. `src/routes`
 
-Contiene le definizioni degli endpoint REST.
-
-Esempio:
-
-```text
-GET /
-```
+Le route definiscono gli endpoint REST e delegano la gestione della richiesta ai controller.
 
 Le route devono avere il compito di collegare:
 
@@ -216,11 +226,21 @@ src/routes/
 └── ...
 ```
 
-I nomi definitivi verranno stabiliti in base alla specifica del progetto.
+
+Le rotte attualmente presenti:
+
+```text
+POST /auth/register
+POST /auth/login
+GET  /auth/test
+```
+- POST /auth/register registra un nuovo utente.
+- POST /auth/login autentica un utente e restituisce un JWT.
+- GET /auth/test è una rotta temporanea protetta utilizzata per verificare il funzionamento di authMiddleware.
 
 ---
 
-# 7. `src/controllers`
+# 8. `src/controllers`
 
 I controller rappresentano il livello che gestisce le richieste HTTP.
 
@@ -250,7 +270,7 @@ Quando verranno aggiunte nuove funzionalità, ogni gruppo di endpoint potrà ave
 
 ---
 
-# 8. `src/services`
+# 9. `src/services`
 
 I Service contengono la logica applicativa.
 
@@ -271,38 +291,76 @@ Controller
     └── operazioni richieste
 ```
 
-Quando verranno definite le funzionalità dal progetto, verranno creati i Service necessari.
-
----
-
-# 9. `src/repositories`
-
-Questa cartella è predisposta per separare l'accesso al database dalla logica applicativa.
-
-I Repository/DAO saranno responsabili delle operazioni sui dati tramite Sequelize.
-
-Esempio concettuale:
-
+**authService.ts**
+AuthService gestisce attualmente registrazione e login.
+Registrazione
+Il flusso della registrazione è:
 ```text
-Service
-   │
-   ▼
-Repository
-   │
-   ▼
-Sequelize
-   │
-   ▼
-MySQL
+AuthController
+      │
+      ▼
+ AuthService.register()
+      │
+      ├── ricerca utente tramite Repository
+      │
+      ├── controllo email già esistente
+      │
+      ├── bcrypt.hash(password)
+      │
+      ├── creazione User tramite Repository
+      │
+      └── restituzione dei dati pubblici dell'utente
 ```
 
-Il Service non dovrebbe contenere direttamente query o operazioni specifiche del database quando queste possono essere delegate al Repository.
+Il ruolo non viene ricevuto dal client: gli utenti registrati tramite /auth/register vengono creati con ruolo user.
 
-I Repository verranno aggiunti quando saranno definite le entità e le operazioni richieste dalla specifica.
+**Login**
+Il flusso del login è:
+```text
+AuthController
+      │
+      ▼
+ AuthService.login()
+      │
+      ├── ricerca utente tramite Repository
+      ├── bcrypt.compare(...)
+      ├── generazione JWT
+      └── restituzione token + dati utente
+```
+Il JWT contiene i metadati essenziali dell'utente e ha attualmente una durata configurata di 2 ore.
 
 ---
 
-# 10. `src/models`
+# 10. `src/repositories`
+
+Il Repository separa la logica applicativa dall'accesso ai dati.
+authRepository.ts
+
+Il file contiene attualmente un UserRepository, responsabile delle operazioni Sequelize utilizzate dall'autenticazione.
+
+Operazioni presenti:
+```text
+findByEmail(email)
+createNewUser(email, hashedPassword)
+```
+- **findByEmail()** utilizza Sequelize per cercare un utente tramite email.
+- **createNewUser()** utilizza User.create(...) e salva nel database esclusivamente la password già hashata dal Service.
+Flusso di persistenza:
+```text
+AuthService
+    │
+    ▼
+UserRepository
+    │
+    ▼
+ Sequelize
+    │
+    ▼
+  MySQL
+```
+---
+
+# 11. `src/models`
 
 Contiene i Model Sequelize che rappresentano le entità del database.
 
@@ -328,7 +386,7 @@ I nomi sono solamente esempi: verranno definiti in base alla specifica reale.
 
 ---
 
-# 11. `src/middleware`
+# 12. `src/middleware`
 
 Contiene i middleware Express.
 
@@ -349,9 +407,20 @@ Registra le richieste ricevute dal server.
 
 Gestisce la validazione dei dati utilizzando `express-validator`.
 
-## `errorHandler.ts`
+## `authMiddleware.ts`
+Protegge le route che richiedono autenticazione JWT.
+Il middleware:
+1. legge l'header Authorization;
+2. verifica il formato Bearer <token>;
+3. verifica il JWT;
+4. salva il payload decodificato nella richiesta;
+5. consente il proseguimento tramite next().
+La rotta /auth/test viene attualmente utilizzata per verificare questo comportamento.
 
-Gestisce gli errori non gestiti dalle route e restituisce una risposta HTTP appropriata.
+## `errorHandler.ts`
+È il middleware centralizzato per la costruzione delle risposte di errore.
+
+Se riceve un AppError, utilizza lo statusCode e il messaggio contenuti nell'errore. Gli errori non riconosciuti vengono trasformati in una risposta 500 Internal Server Error.
 
 ---
 
@@ -369,7 +438,7 @@ Il middleware dovrà essere utilizzato per funzionalità trasversali, evitando d
 
 ---
 
-# 12. `src/types`
+# 13. `src/types`
 
 Contiene le interfacce e i tipi TypeScript condivisi dall'applicazione.
 
@@ -390,7 +459,7 @@ Questa cartella potrà contenere in futuro i tipi necessari per:
 
 ---
 
-# 13. Autenticazione e autorizzazione
+# 14. Autenticazione e autorizzazione
 
 L'autenticazione avviene tramite le rotte /auth/register e /auth/login. 
 
@@ -419,13 +488,11 @@ src/
 └── ...
 ```
 
-Il sistema potrà utilizzare JWT per identificare l'utente autenticato e middleware dedicati per controllare i permessi.
-
-La struttura definitiva verrà stabilita in base ai requisiti effettivi del progetto.
+Il sistema utilizza JWT per identificare l'utente autenticato e middleware dedicati per controllare i permessi.
 
 ---
 
-# 14. Gestione degli errori
+# 15. Gestione degli errori
 
 Gli errori devono essere gestiti in modo centralizzato quando possibile.
 
@@ -447,7 +514,7 @@ In futuro potranno essere introdotti errori personalizzati e un sistema centrali
 
 ---
 
-# 15. Test
+# 16. Test
 
 I test si trovano nella cartella:
 
@@ -481,7 +548,7 @@ I test devono essere aggiornati ogni volta che vengono introdotte nuove funziona
 
 ---
 
-# 16. Docker
+# 17. Docker
 
 Il progetto utilizza Docker Compose per eseguire:
 
@@ -514,7 +581,7 @@ Il database utilizza un volume Docker per mantenere i dati anche quando il conta
 
 ---
 
-# 17. Variabili d'ambiente
+# 18. Variabili d'ambiente
 
 Le configurazioni sensibili e variabili vengono mantenute nel file:
 
@@ -540,7 +607,7 @@ Per questo motivo è inserito nel `.gitignore`.
 
 ---
 
-# 18. File JavaScript generati
+# 19. File JavaScript generati
 
 Il codice sorgente viene scritto in TypeScript:
 
@@ -566,7 +633,7 @@ La cartella `dist/` è esclusa dal repository tramite `.gitignore`.
 
 ---
 
-# 19. Comandi principali
+# 20. Comandi principali
 
 Installazione delle dipendenze:
 
@@ -612,7 +679,7 @@ docker compose ps
 
 ---
 
-# 20. Struttura da seguire durante lo sviluppo
+# 21. Struttura da seguire durante lo sviluppo
 
 Quando viene aggiunta una nuova funzionalità, bisogna prima identificare il livello a cui appartiene.
 
@@ -674,7 +741,7 @@ Verifica il comportamento dell'applicazione.
 
 ---
 
-# 21. Sviluppo futuro
+# 22. Sviluppo futuro
 
 La struttura verrà completata progressivamente seguendo la specifica del progetto.
 
@@ -714,7 +781,7 @@ La struttura definitiva delle cartelle e dei file verrà modificata solamente qu
 
 ---
 
-# 22. Stato attuale
+# 23. Stato attuale
 
 Attualmente sono funzionanti:
 

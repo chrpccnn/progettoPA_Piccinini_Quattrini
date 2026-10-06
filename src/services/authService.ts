@@ -1,20 +1,18 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { User } from "../models/user";
+import UserRepository from "../repository/authRepository";
+import { AppError } from "../errors/appError";
+import { ErrorFactory } from "../errors/ErrorFactory";
 
 export class AuthService {
-    static async register(email: string, plainPassword: string, role: "user" | "admin") {
-        const existingUser = await User.findOne({ where: { email } });
+    static async register(email: string, plainPassword: string) {
+        const existingUser = await UserRepository.findByEmail(email);
         if (existingUser) {
-            throw new Error("email already exist!")
+            throw ErrorFactory.userAlreadyExists();
         }
-        const encryped_ps = await bcrypt.hash(plainPassword, 10)
+        const encrypted_ps = await bcrypt.hash(plainPassword, 10)
 
-        const newUser = await User.create({
-            email,
-            password: encryped_ps,
-            role,
-        });
+        const newUser = await UserRepository.createNewUser(email, encrypted_ps)
 
         return {
             id: newUser.id,
@@ -24,14 +22,14 @@ export class AuthService {
     }  
 
     static async login(email: string, plainPassword: string){
-        const existingUser = await User.findOne({  where: { email } })
+        const existingUser = await UserRepository.findByEmail(email);
         if(!existingUser){
-            throw new Error("Invalid credentials")
+            throw ErrorFactory.invalidCredentials();
         }
 
         const isPasswordValid = await bcrypt.compare(plainPassword, existingUser.password);
         if (!isPasswordValid) {
-            throw new Error("Invalid credentials")
+            throw ErrorFactory.invalidCredentials();
         }
         
         const token = jwt.sign(

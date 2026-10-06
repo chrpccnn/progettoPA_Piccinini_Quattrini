@@ -6,8 +6,10 @@ import authRoutes from "./routes/authRoutes";
 
 const app = express();
 
+// Middleware di Express: trasforma il body in JSON
 app.use(express.json());
 
+// Middleeare globale, eseguito ad ogni rotta
 app.use(logger);
 
 app.use("/", router);

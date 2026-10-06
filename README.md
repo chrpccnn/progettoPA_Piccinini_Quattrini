@@ -1,5 +1,8 @@
 # Progetto Programmazione Avanzata
 
+L'obiettivo del progetto è la realizzazione di un sistema di gestione di Space Battleship 3D, una variante spaziale e tridimensionale
+della battaglia navale. 
+
 Backend REST sviluppato in **Node.js, Express, TypeScript, Sequelize e MySQL**, con ambiente containerizzato tramite Docker.
 
 Il progetto è strutturato a livelli, in modo da separare la gestione delle richieste HTTP, la logica applicativa e l'accesso al database.
@@ -33,20 +36,23 @@ progettopa_piccinini_quattrini/
 │   │   └── database.ts
 │   │
 │   ├── controllers/
-│   │   └── indexController.ts
+│   │   ├── indexController.ts
+│   │   └── authController.ts
 │   │
 │   ├── middleware/
+│   │   ├── authMiddleware.ts
 │   │   ├── logger.ts
 │   │   ├── validation.ts
 │   │   └── errorHandler.ts
 │   │
 │   ├── models/
-│   │   └── ...
+│   │   └── user.ts
 │   │
 │   ├── repositories/
 │   │   └── ...
 │   │
 │   ├── routes/
+│   │   ├── authRoutes.ts
 │   │   └── index.ts
 │   │
 │   ├── services/
@@ -386,19 +392,29 @@ Questa cartella potrà contenere in futuro i tipi necessari per:
 
 # 13. Autenticazione e autorizzazione
 
-La gestione dell'autenticazione verrà aggiunta quando la specifica definirà utenti, login e ruoli.
+L'autenticazione avviene tramite le rotte /auth/register e /auth/login. 
+
+Tramite /auth/register è possibile registrare un utente tramite email, il ruolo viene definito in modo fisso "USER" e inserito nel DB.
+
+Tramite /auth/login è possibile effettuare l'accesso al sistema così da poter essere autenticato e agire in base ai propri privilegi.
 
 La struttura prevista potrà comprendere componenti come:
 
 ```text
 src/
-├── auth/
-│   ├── ...
+├── controller/
+│   ├── authController.ts
 │   └── ...
 │
 ├── middleware/
 │   ├── authMiddleware.ts
 │   └── roleMiddleware.ts
+│
+├── routes/
+│   └── authRoutes.ts
+│
+├── services/
+│   └── authService.ts
 │
 └── ...
 ```

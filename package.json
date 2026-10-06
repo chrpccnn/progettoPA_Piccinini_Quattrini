@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
-    "dev": "nodemon src/server.ts", 
+    "dev": "nodemon src/server.ts",
     "test": "jest"
   },
   "keywords": [],
@@ -29,10 +29,10 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.6.3",
     "@types/supertest": "^7.2.1",
-    "jest": "^30.2.0",
+    "jest": "^30.5.2",
     "nodemon": "^3.1.14",
     "supertest": "^7.3.0",
-    "ts-jest": "^29.4.6",
+    "ts-jest": "^29.4.14",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }

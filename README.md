@@ -1,16 +1,40 @@
 # Progetto Programmazione Avanzata - Space Battleship 3D
 
 ## 1. Obiettivo del progetto
-L'obiettivo del progetto è la realizzazione di un backend REST di Space Battleship 3D, una variante spaziale e tridimensionale
-della battaglia navale. 
 
-Il sistema è sviluppato in **Node.js, Express, TypeScript, Sequelize e MySQL**, con ambiente containerizzato tramite Docker.
+L'obiettivo del progetto è la realizzazione di un backend REST di **Space Battleship 3D**, una variante spaziale e tridimensionale della battaglia navale.
 
-Il progetto è strutturato a livelli, in modo da separare la gestione delle richieste HTTP, la logica applicativa e l'accesso al database.
+Il sistema permette di gestire utenti, autenticazione, partite tra utenti o contro un'intelligenza artificiale e le principali meccaniche di gioco, tra cui:
+
+* gestione di una griglia tridimensionale;
+* posizionamento delle navi;
+* gestione delle flotte;
+* gestione dei giocatori umani e IA;
+* gestione dei turni;
+* sistema di Energy;
+* sistema di TOKEN economici;
+* azioni di gioco;
+* contromosse;
+* attacchi;
+* scansioni;
+* scudi;
+* movimento delle navi;
+* determinazione della vittoria e della fine della partita.
+
+Il backend è sviluppato utilizzando:
+
+* **Node.js**
+* **Express**
+* **TypeScript**
+* **Sequelize**
+* **MySQL**
+* **Docker / Docker Compose**
+
+Il progetto segue una struttura a livelli e utilizza principi di progettazione orientati agli oggetti e pattern architetturali per separare le responsabilità e rendere il codice più manutenibile e testabile.
 
 ---
 
-## 2. Tecnologie utilizzate
+# 2. Tecnologie utilizzate
 
 * **Node.js** — runtime JavaScript
 * **TypeScript** — linguaggio utilizzato per il codice sorgente
@@ -22,17 +46,67 @@ Il progetto è strutturato a livelli, in modo da separare la gestione delle rich
 * **Supertest** — test delle API HTTP
 * **express-validator** — validazione dei dati ricevuti dalle API
 * **dotenv** — gestione delle variabili d'ambiente
+* **bcrypt** — hashing delle password
+* **jsonwebtoken** — autenticazione tramite JWT
 
 ---
 
 # 3. Struttura del progetto
 
-La struttura prevista è la seguente:
+La struttura del progetto è organizzata separando infrastruttura, dominio, logica applicativa e gestione delle API.
 
 ```text
 progettopa_piccinini_quattrini/
+
 │
 ├── src/
+│   │
+│   ├── Action/
+│   │   ├── IAction.ts
+│   │   ├── ActionContext.ts
+│   │   ├── BasicMove.ts
+│   │   ├── Countermeasure.ts
+│   │   ├── AttackResult.ts
+│   │   │
+│   │   ├── BasicMoves/
+│   │   │   ├── Attack.ts
+│   │   │   ├── Scan.ts
+│   │   │   ├── Shield.ts
+│   │   │   └── Move.ts
+│   │   │
+│   │   └── Countermeasures/
+│   │       ├── CancelAttack.ts
+│   │       ├── ReduceAttack.ts
+│   │       ├── AlterScan.ts
+│   │       └── RadioSilence.ts
+│   │
+│   ├── Engine/
+│   │   └── GameEngine.ts
+│   │
+│   ├── game/
+│   │   ├── Game.ts
+│   │   └── GameState.ts
+│   │
+│   ├── grid/
+│   │   ├── Coordinates.ts
+│   │   ├── Cell.ts
+│   │   ├── Grid.ts
+│   │   ├── MapGrid.ts
+│   │   └── GridFactory.ts
+│   │
+│   ├── fleet/
+│   │   ├── Ship.ts
+│   │   ├── ShipType.ts
+│   │   ├── ShipStatus.ts
+│   │   ├── Orientation.ts
+│   │   └── Fleet.ts
+│   │
+│   ├── Players/
+│   │   ├── IPlayer.ts
+│   │   ├── PlayerType.ts
+│   │   ├── HumanPlayer.ts
+│   │   └── AIPlayer.ts
+│   │
 │   ├── config/
 │   │   └── database.ts
 │   │
@@ -51,7 +125,7 @@ progettopa_piccinini_quattrini/
 │   │   └── errorHandler.ts
 │   │
 │   ├── models/
-│   │   └── user.ts
+│   │   └── User.ts
 │   │
 │   ├── repository/
 │   │   └── authRepository.ts
@@ -90,11 +164,11 @@ La cartella `dist/` viene generata automaticamente durante la compilazione TypeS
 
 ---
 
-# 4. Organizzazione del codice
+# 4. Progettazione
 
-Il progetto segue una separazione a livelli.
+Il progetto è stato progettato separando le responsabilità tra diversi livelli.
 
-Il flusso principale di una richiesta sarà:
+Il flusso generale delle richieste REST è:
 
 ```text
 Client / Postman
@@ -112,409 +186,983 @@ Client / Postman
     Service
        │
        ▼
- Repository / DAO
+  Repository
        │
        ▼
-    Sequelize
+   Sequelize
        │
        ▼
-      MySQL
+     MySQL
 ```
 
-Le responsabilità principali sono:
-- **Route**: associa metodo HTTP e URL al controller e agli eventuali middleware.
-- **Controller**: riceve la richiesta HTTP, recupera i dati necessari, chiama il Service e costruisce la risposta.
-- **Service**: contiene la logica applicativa.
-- **Repository**: separa la logica applicativa dalle operazioni di persistenza eseguite tramite Sequelize.
-- **Model**: rappresenta le entità persistite nel database.
-- **Middleware**: gestisce funzionalità trasversali come logging, autenticazione, validazione ed error handling.
+Le funzionalità di dominio del gioco sono invece organizzate separatamente dalla parte REST:
 
-La risposta segue il percorso inverso fino al client.
+```text
+                    Game
+                     │
+          ┌──────────┼──────────┐
+          │          │          │
+        Grid       Players     Fleet
+          │                     │
+     Coordinates               Ship
+     Cell / State
+                     │
+                     ▼
+                GameEngine
+                     │
+                     ▼
+                   Action
+                     │
+          ┌──────────┴──────────┐
+          │                     │
+      BasicMove           Countermeasure
+          │                     │
+    ┌─────┼─────┐         ┌─────┼─────────┐
+    │     │     │         │     │         │
+ Attack Scan Shield Move Cancel Alter   Radio
+                           Attack Scan   Silence
+```
 
-Questa separazione permette di evitare di inserire tutta la logica all'interno delle route e rende il progetto più semplice da mantenere e testare.
+Questa separazione permette di mantenere indipendente la logica di gioco dalla gestione HTTP.
 
 ---
 
-# 5. Cartella `src`
+# 5. Dominio di gioco
 
-La cartella `src` contiene tutto il codice sorgente scritto in TypeScript.
+## 5.1 Grid
 
-## `src/app.ts`
+La griglia rappresenta lo spazio tridimensionale nel quale viene giocata la partita.
+
+La griglia è parametrizzata tramite:
+
+```text
+width
+height
+depth
+```
+
+Le coordinate partono da `0`.
+
+La griglia non contiene direttamente la logica relativa alle navi o agli attacchi.
+
+È responsabile solamente della gestione dello spazio di gioco e dello stato delle celle.
+
+L'interfaccia `Grid` permette di astrarre l'implementazione concreta della griglia.
+
+L'implementazione attuale è `MapGrid`.
+
+---
+
+## 5.2 Coordinates
+
+`Coordinates` rappresenta un **Value Object** per le coordinate tridimensionali.
+
+Ogni coordinata è identificata dalla terna:
+
+```text
+(x, y, z)
+```
+
+Le coordinate vengono create tramite:
+
+```text
+Coordinates.create(x, y, z)
+```
+
+La factory mantiene una singola istanza per ogni combinazione di coordinate.
+
+Questo permette di mantenere un'identità coerente delle coordinate all'interno del dominio e rende possibile utilizzarle efficacemente anche all'interno delle strutture `Set` e `Map`.
+
+---
+
+## 5.3 Cell
+
+La `Cell` rappresenta una posizione della griglia.
+
+La cella non contiene la logica di gioco.
+
+Lo stato della cella viene invece gestito separatamente tramite `CellState`.
+
+Gli stati previsti sono:
+
+```text
+EMPTY
+OCCUPIED
+HIT
+MISS
+```
+
+La separazione tra posizione e stato evita di caricare `Cell` con responsabilità appartenenti alla logica della partita.
+
+---
+
+# 6. Navi e flotte
+
+## 6.1 Ship
+
+Le navi disponibili sono:
+
+| Nave       | Dimensione |
+| ---------- | ---------: |
+| MotherShip |    5 celle |
+| Cruiser    |    4 celle |
+| Scout      |    2 celle |
+| Drone      |    1 cella |
+
+I tipi sono rappresentati dall'enum `ShipType`.
+
+Le navi possono avere orientamento:
+
+```text
+HORIZONTAL
+VERTICAL
+DEPTH
+```
+
+`Ship` mantiene:
+
+* identificativo;
+* tipo;
+* dimensione;
+* orientamento;
+* posizioni occupate;
+* stato;
+* posizioni colpite.
+
+Gli stati possibili sono:
+
+```text
+INTACT
+DAMAGED
+DESTROYED
+```
+
+Una nave può essere colpita tramite `hit()`.
+
+Quando tutte le sue celle sono state colpite, la nave passa allo stato `DESTROYED`.
+
+Una nave che è stata colpita non può essere spostata.
+
+Il metodo `moveTo()` verifica inoltre che il numero di nuove posizioni corrisponda alla dimensione della nave e che non ci siano posizioni duplicate.
+
+La classe `Ship` verifica anche la coerenza tra tipo e dimensione:
+
+```text
+MotherShip → 5
+Cruiser    → 4
+Scout      → 2
+Drone      → 1
+```
+
+---
+
+## 6.2 Fleet
+
+`Fleet` rappresenta la flotta di un giocatore.
+
+La flotta gestisce:
+
+* aggiunta delle navi;
+* rimozione delle navi;
+* ricerca di una nave tramite ID;
+* conteggio delle navi per categoria;
+* verifica della composizione;
+* verifica della distruzione completa della flotta.
+
+I limiti massimi sono:
+
+| Nave       | Massimo |
+| ---------- | ------: |
+| MotherShip |       3 |
+| Cruiser    |       3 |
+| Scout      |       4 |
+| Drone      |       5 |
+
+All'inizio della partita deve essere presente almeno una nave per ogni categoria.
+
+Il numero effettivo di navi può quindi variare in base alle dimensioni della griglia.
+
+Le navi possono essere adiacenti, ma non possono sovrapporsi.
+
+---
+
+# 7. Player
+
+Il dominio prevede due tipologie di giocatore:
+
+```text
+HUMAN
+AI
+```
+
+La struttura comune è definita tramite l'interfaccia:
+
+```text
+IPlayer
+```
+
+Le implementazioni concrete sono:
+
+```text
+HumanPlayer
+AIPlayer
+```
+
+Ogni giocatore possiede:
+
+* ID;
+* tipo;
+* flotta;
+* Energy;
+* Credits;
+* utenti associati.
+
+L'interfaccia permette di utilizzare un giocatore umano e un giocatore IA tramite la stessa astrazione.
+
+---
+
+# 8. Game
+
+`Game` rappresenta una singola partita.
+
+Una partita contiene:
+
+* ID;
+* stato;
+* griglia;
+* due giocatori;
+* giocatore corrente;
+* numero del turno;
+* eventuale vincitore.
+
+Gli stati della partita sono:
+
+```text
+WAITING
+RUNNING
+FINISHED
+```
+
+Una partita deve avere esattamente due giocatori.
+
+Le principali operazioni sono:
+
+```text
+start()
+nextTurn()
+end()
+getWinner()
+```
+
+`start()` avvia la partita.
+
+`nextTurn()` passa il controllo al giocatore successivo.
+
+`end()` termina la partita e registra il vincitore.
+
+---
+
+# 9. Action e Command Pattern
+
+Per le azioni di gioco viene utilizzato il **Command Pattern**.
+
+L'astrazione comune è:
+
+```text
+IAction
+```
+
+L'interfaccia definisce:
+
+```text
+getCost()
+execute(context)
+```
+
+Ogni azione è quindi rappresentata da un oggetto autonomo che contiene la propria logica di esecuzione.
+
+La gerarchia è:
+
+```text
+IAction
+│
+├── BasicMove
+│   │
+│   ├── Attack
+│   ├── Scan
+│   ├── Shield
+│   └── Move
+│
+└── Countermeasure
+    │
+    ├── CancelAttack
+    ├── ReduceAttack
+    ├── AlterScan
+    └── RadioSilence
+```
+
+Non viene utilizzata una classe concreta comune `Action`: l'astrazione è fornita da `IAction`, mentre `BasicMove` e `Countermeasure` rappresentano le due categorie di comandi.
+
+---
+
+# 10. ActionContext
+
+Le action ricevono un `ActionContext`.
+
+Il context contiene:
+
+```text
+Game
+Player
+```
+
+In questo modo il comando può accedere alle informazioni necessarie per eseguire la propria logica senza ricevere numerosi parametri separati.
+
+Il flusso è:
+
+```text
+GameEngine
+     │
+     ▼
+ActionContext
+     │
+     ├── Game
+     └── Player
+     │
+     ▼
+action.execute(context)
+```
+
+---
+
+# 11. Basic Moves
+
+## 11.1 Attack
+
+`Attack` riceve una specifica coordinata.
+
+Il costo è:
+
+```text
+1 Energy
+```
+
+L'attacco verifica la presenza di una nave dell'avversario nella posizione indicata.
+
+I risultati possibili sono:
+
+```text
+MISS
+HIT
+DESTROYED
+GAME_OVER
+BLOCKER
+```
+
+Se viene distrutta l'ultima nave della flotta avversaria, la partita termina e viene determinato il vincitore.
+
+Una coordinata può essere attaccata nuovamente, poiché una nave può successivamente spostarsi oppure una cella può essere protetta da uno scudo.
+
+---
+
+# 12. Scan
+
+`Scan` permette di analizzare un cubo:
+
+```text
+3 × 3 × 3
+```
+
+centrato sulla coordinata scelta.
+
+Il costo è:
+
+```text
+2 Energy
+```
+
+Il centro della scansione deve essere sufficientemente distante dai bordi della griglia affinché il cubo sia completamente contenuto nella griglia.
+
+La scansione restituisce solamente il numero di celle occupate.
+
+Non viene comunicato:
+
+* quale nave occupa la cella;
+* se si tratta di una nave o di un relitto.
+
+Il risultato viene mantenuto dall'istanza della `Scan` tramite il relativo getter.
+
+---
+
+# 13. Shield
+
+`Shield` permette di proteggere una singola cella.
+
+Il costo è:
+
+```text
+2 Energy
+```
+
+Lo scudo dura per il turno previsto dalle regole di gioco.
+
+Se l'avversario attacca la cella protetta, l'attacco produce:
+
+```text
+BLOCKER
+```
+
+Lo stato dello scudo deve essere mantenuto nella partita, in quanto deve essere disponibile anche alle successive istanze di `Attack`.
+
+---
+
+# 14. Move
+
+`Move` permette di spostare solamente:
+
+```text
+Scout
+Drone
+```
+
+Il costo è:
+
+```text
+2 Energy
+```
+
+Il movimento avviene di una sola cella e mantiene l'orientamento e la forma della nave.
+
+Prima dello spostamento vengono verificati:
+
+* appartenenza della nave al giocatore;
+* tipo di nave;
+* stato della nave;
+* distanza dello spostamento;
+* validità delle nuove coordinate;
+* assenza di sovrapposizioni con altre navi.
+
+Una nave precedentemente colpita non può essere spostata.
+
+---
+
+# 15. Countermeasure
+
+Le contromosse vengono utilizzate durante la finestra prevista dopo una `Attack` o una `Scan`.
+
+Le contromosse previste sono:
+
+```text
+CancelAttack
+ReduceAttack
+AlterScan
+RadioSilence
+```
+
+Le contromosse appartengono alla gerarchia `Countermeasure` e implementano autonomamente la propria logica tramite `execute(context)`.
+
+Le contromosse vengono eseguite durante il turno dell'avversario.
+
+È inoltre prevista la possibilità di effettuare un `PASS`.
+
+Le contromosse consumano Energy e TOKEN secondo le regole della partita.
+
+`RadioSilence` è disponibile solamente nelle partite tra utenti e utilizza inoltre gli specifici `silence credits`.
+
+---
+
+# 16. GameEngine
+
+`GameEngine` rappresenta il componente responsabile dell'esecuzione delle azioni all'interno della partita.
+
+È implementato come **Singleton**, poiché viene utilizzato come punto centrale per l'esecuzione delle azioni.
+
+Le principali operazioni sono:
+
+```text
+executeAction()
+executeCountermeasure()
+validateMove()
+validateCountermeasure()
+```
+
+Il flusso di una normale action è:
+
+```text
+executeAction()
+       │
+       ▼
+validateMove()
+       │
+       ├── partita RUNNING
+       ├── giocatore corretto
+       └── Energy sufficiente
+       │
+       ▼
+consumeEnergy()
+       │
+       ▼
+action.execute(context)
+       │
+       ▼
+nextTurn()
+```
+
+Il `GameEngine` non contiene la logica specifica di `Attack`, `Scan`, `Shield` o `Move`.
+
+Questa responsabilità viene delegata alle singole action.
+
+---
+
+# 17. Sistema Energy
+
+Ogni giocatore dispone di Energy.
+
+Il valore predefinito è:
+
+```text
+3 Energy iniziali
+```
+
+A ogni turno successivo vengono aggiunte:
+
+```text
++2 Energy
+```
+
+Il numero iniziale e il recupero potranno essere configurabili.
+
+I costi delle action sono:
+
+| Action | Energy |
+| ------ | -----: |
+| Attack |      1 |
+| Scan   |      2 |
+| Shield |      2 |
+| Move   |      2 |
+
+Se il giocatore non possiede abbastanza Energy, l'azione viene rifiutata.
+
+In questo caso:
+
+* non viene consumata Energy;
+* non viene consumato il turno;
+* non viene consumato TOKEN.
+
+---
+
+# 18. Sistema TOKEN
+
+I TOKEN rappresentano una valuta economica separata dall'Energy utilizzata durante la partita.
+
+La creazione di una partita costa:
+
+```text
+0,30 TOKEN
+```
+
+Ogni mossa effettuata durante una partita costa:
+
+```text
+0,015 TOKEN
+```
+
+Il costo viene applicato alle azioni e alle contromosse secondo le regole del gioco.
+
+Se un utente termina i TOKEN durante una partita, la partita continua normalmente fino alla sua conclusione.
+
+L'utente non potrà però creare una nuova partita finché non avrà nuovamente abbastanza TOKEN.
+
+La ricarica dei TOKEN può essere effettuata solamente da un utente `ADMIN`.
+
+I TOKEN ricevuti vengono sommati a quelli già posseduti dall'utente.
+
+---
+
+# 19. Creazione della partita
+
+Un utente può creare una partita scegliendo tra:
+
+```text
+USER vs USER
+USER vs AI
+```
+
+Un utente può partecipare a una sola partita alla volta.
+
+## Partita contro un altro utente
+
+Il creatore deve indicare l'email dell'avversario.
+
+Le email dei due giocatori devono essere diverse.
+
+In una partita tra due utenti inizia sempre il giocatore che ha creato la partita.
+
+## Partita contro IA
+
+La partita viene creata contro un giocatore `AI`.
+
+In questo caso:
+
+```text
+USER → primo turno
+AI   → secondo turno
+```
+
+L'IA deve inoltre essere in grado di generare un posizionamento valido delle proprie navi.
+
+---
+
+# 20. Posizionamento delle navi
+
+All'inizio della partita ogni giocatore deve avere almeno una nave per categoria.
+
+I limiti massimi sono:
+
+```text
+MotherShip → 3
+Cruiser    → 3
+Scout      → 4
+Drone      → 5
+```
+
+Il numero effettivo di navi deve essere compatibile con la dimensione della griglia.
+
+Le navi:
+
+* possono essere adiacenti;
+* non possono sovrapporsi;
+* possono essere orientate lungo i tre assi;
+* devono essere completamente contenute nella griglia.
+
+I due giocatori devono avere lo stesso numero complessivo di navi.
+
+---
+
+# 21. Posizionamento IA
+
+Il posizionamento dell'IA è casuale.
+
+Le navi vengono posizionate partendo dalle più grandi.
+
+Se una nave successiva non può essere posizionata, il sistema deve poter annullare il posizionamento precedente e tentare una configurazione differente.
+
+Il processo continua fino a ottenere una configurazione valida della flotta.
+
+---
+
+# 22. Turni
+
+Ogni giocatore può effettuare una sola action principale per turno.
+
+Il flusso previsto è:
+
+```text
+Giocatore A
+     │
+     ▼
+Action
+     │
+     ▼
+Finestra contromossa
+     │
+     ├── Countermeasure
+     │
+     └── PASS
+     │
+     ▼
+Fine turno
+     │
+     ▼
+Giocatore B
+```
+
+Le contromosse non costituiscono una normale action principale e possono essere effettuate solamente nella finestra prevista dopo una `Attack` o una `Scan`.
+
+---
+
+# 23. Autenticazione e autorizzazione
+
+L'autenticazione avviene tramite:
+
+```text
+POST /auth/register
+POST /auth/login
+```
+
+La registrazione permette di creare un nuovo utente tramite email e password.
+
+Il ruolo assegnato agli utenti registrati tramite API è quello previsto dal sistema e non viene scelto liberamente dal client.
+
+Il login verifica le credenziali e restituisce un JWT.
+
+Il JWT viene utilizzato dal middleware di autenticazione per identificare l'utente.
+
+Il sistema prevede inoltre la distinzione tra:
+
+```text
+USER
+ADMIN
+```
+
+L'utente `ADMIN` possiede privilegi aggiuntivi, tra cui la possibilità di ricaricare i TOKEN degli utenti.
+
+---
+
+# 24. Pattern utilizzati
+
+## 24.1 Repository Pattern
+
+Il Repository Pattern viene utilizzato per separare la logica applicativa dall'accesso al database.
+
+Esempio:
+
+```text
+AuthService
+     │
+     ▼
+UserRepository
+     │
+     ▼
+Sequelize
+     │
+     ▼
+MySQL
+```
+
+Il Service non esegue direttamente le operazioni Sequelize.
+
+### Motivazione
+
+Il pattern permette di:
+
+* separare persistenza e logica applicativa;
+* semplificare i test;
+* ridurre l'accoppiamento con Sequelize;
+* rendere più semplice la sostituzione dell'implementazione di persistenza.
+
+---
+
+## 24.2 Service Layer
+
+La logica applicativa viene concentrata nei Service.
+
+Il Controller non contiene le regole principali del dominio.
+
+Il flusso è:
+
+```text
+Controller
+    │
+    ▼
+Service
+    │
+    ▼
+Repository
+```
+
+### Motivazione
+
+Questo permette di separare il livello HTTP dalla logica applicativa.
+
+---
+
+## 24.3 Command Pattern
+
+Il Command Pattern viene utilizzato per rappresentare le azioni di gioco.
+
+Ogni action è un oggetto autonomo:
+
+```text
+Attack
+Scan
+Shield
+Move
+```
+
+e dispone del proprio:
+
+```text
+execute(context)
+```
+
+### Motivazione
+
+Il pattern è particolarmente adatto perché le azioni devono essere:
+
+* indipendenti;
+* eseguibili tramite un'interfaccia comune;
+* dotate di un costo differente;
+* facilmente estendibili;
+* utilizzabili dal `GameEngine` senza conoscere i dettagli della singola azione.
+
+Inoltre permette di aggiungere nuove azioni senza modificare la logica delle action già esistenti.
+
+---
+
+## 24.4 Factory Pattern
+
+Il progetto utilizza una Factory per la creazione della griglia:
+
+```text
+GridFactory.create(width, height, depth)
+```
+
+La Factory restituisce un'implementazione dell'interfaccia `Grid`.
+
+### Motivazione
+
+Il codice che utilizza la griglia non deve conoscere necessariamente la classe concreta `MapGrid`.
+
+Questo riduce l'accoppiamento tra utilizzatore e implementazione.
+
+---
+
+## 24.5 Singleton Pattern
+
+Il `GameEngine` viene implementato come Singleton.
+
+```text
+GameEngine.getInstance()
+```
+
+### Motivazione
+
+Il pattern garantisce l'utilizzo di un'unica istanza dell'engine all'interno dell'applicazione.
+
+---
+
+## 24.6 Value Object
+
+`Coordinates` viene progettato come Value Object.
+
+Una coordinata è definita esclusivamente dai valori:
+
+```text
+x
+y
+z
+```
+
+### Motivazione
+
+Le coordinate rappresentano un valore del dominio e non possiedono un'identità indipendente.
+
+La factory garantisce inoltre una gestione coerente delle istanze delle coordinate.
+
+---
+
+# 25. `src/app.ts`
 
 Contiene la configurazione principale di Express.
 
 Qui vengono registrati:
 
 * middleware globali;
-* parsing delle richieste JSON;
+* parsing JSON;
+* logger;
 * router;
-* gestione degli errori.
+* route di autenticazione;
+* error handler.
 
-Non deve contenere la logica delle singole funzionalità.
+Il server HTTP non viene avviato da `app.ts`.
 
-Esempio del flusso attuale:
-
-```text
-Express
-  │
-  ├── express.json()
-  ├── logger
-  ├── routes principali
-  ├── /auth routes
-  └── errorHandler
-```
+Questo permette di importare l'applicazione direttamente nei test.
 
 ---
 
-## `src/server.ts`
+# 26. `src/server.ts`
 
 È il punto di avvio dell'applicazione.
 
 Si occupa principalmente di:
 
 1. caricare le variabili d'ambiente;
-2. inizializzare i model Sequelize;
+2. inizializzare i Model Sequelize;
 3. verificare la connessione al database;
-4. avviare il server HTTP.
+4. sincronizzare il database;
+5. avviare il server HTTP.
 
-La configurazione di Express rimane invece in `app.ts`.
+La configurazione Express rimane in `app.ts`.
 
-Questa separazione permette anche di utilizzare `app.ts` direttamente nei test senza dover avviare un server reale.
-
----
-
-# 6. `src/config`
-
-Contiene la configurazione delle componenti esterne dell'applicazione.
-
-Attualmente contiene:
-
-```text
-src/config/
-└── database.ts
-```
-
-## `database.ts`
-
-Contiene la configurazione di Sequelize e della connessione a MySQL.
-
-Le credenziali e le configurazioni variabili non devono essere scritte direttamente nel codice, ma devono essere recuperate tramite variabili d'ambiente.
+Questa separazione permette di utilizzare `app.ts` direttamente nei test senza avviare un server reale.
 
 ---
 
-# 7. `src/routes`
+# 27. Middleware
 
-Le route definiscono gli endpoint REST e delegano la gestione della richiesta ai controller.
+I middleware gestiscono funzionalità trasversali alle richieste.
 
-Le route devono avere il compito di collegare:
-
-```text
-HTTP method + URL
-        ↓
-    Controller
-```
-
-La logica applicativa non deve essere inserita direttamente nelle route.
-
-Quando verranno aggiunte nuove funzionalità, gli endpoint potranno essere organizzati in router separati, ad esempio:
+Sono presenti:
 
 ```text
-src/routes/
-├── index.ts
-├── userRoutes.ts
-├── authRoutes.ts
-└── ...
+logger.ts
+validation.ts
+authMiddleware.ts
+errorHandler.ts
 ```
 
-
-Le rotte attualmente presenti:
-
-```text
-POST /auth/register
-POST /auth/login
-GET  /auth/test
-```
-- POST /auth/register registra un nuovo utente.
-- POST /auth/login autentica un utente e restituisce un JWT.
-- GET /auth/test è una rotta temporanea protetta utilizzata per verificare il funzionamento di authMiddleware.
-
----
-
-# 8. `src/controllers`
-
-I controller rappresentano il livello che gestisce le richieste HTTP.
-
-Sono responsabili principalmente di:
-
-* ricevere `Request`;
-* recuperare i parametri della richiesta;
-* chiamare il Service appropriato;
-* costruire la risposta HTTP;
-* restituire status code e dati al client.
-
-Il controller non dovrebbe contenere la logica principale dell'applicazione.
-
-Esempio concettuale:
-
-```text
-Request
-   ↓
-Controller
-   ↓
-Service
-   ↓
-Response
-```
-
-Quando verranno aggiunte nuove funzionalità, ogni gruppo di endpoint potrà avere il proprio controller.
-
----
-
-# 9. `src/services`
-
-I Service contengono la logica applicativa.
-
-Sono il punto in cui verranno implementate le regole del progetto.
-
-Il Service non dovrebbe occuparsi direttamente della gestione della richiesta HTTP.
-
-Esempio:
-
-```text
-Controller
-    │
-    ▼
- Service
-    │
-    ├── controlli
-    ├── regole applicative
-    └── operazioni richieste
-```
-
-**authService.ts**
-AuthService gestisce attualmente registrazione e login.
-Registrazione
-Il flusso della registrazione è:
-```text
-AuthController
-      │
-      ▼
- AuthService.register()
-      │
-      ├── ricerca utente tramite Repository
-      │
-      ├── controllo email già esistente
-      │
-      ├── bcrypt.hash(password)
-      │
-      ├── creazione User tramite Repository
-      │
-      └── restituzione dei dati pubblici dell'utente
-```
-
-Il ruolo non viene ricevuto dal client: gli utenti registrati tramite /auth/register vengono creati con ruolo user.
-
-**Login**
-Il flusso del login è:
-```text
-AuthController
-      │
-      ▼
- AuthService.login()
-      │
-      ├── ricerca utente tramite Repository
-      ├── bcrypt.compare(...)
-      ├── generazione JWT
-      └── restituzione token + dati utente
-```
-Il JWT contiene i metadati essenziali dell'utente e ha attualmente una durata configurata di 2 ore.
-
----
-
-# 10. `src/repositories`
-
-Il Repository separa la logica applicativa dall'accesso ai dati.
-authRepository.ts
-
-Il file contiene attualmente un UserRepository, responsabile delle operazioni Sequelize utilizzate dall'autenticazione.
-
-Operazioni presenti:
-```text
-findByEmail(email)
-createNewUser(email, hashedPassword)
-```
-- **findByEmail()** utilizza Sequelize per cercare un utente tramite email.
-- **createNewUser()** utilizza User.create(...) e salva nel database esclusivamente la password già hashata dal Service.
-Flusso di persistenza:
-```text
-AuthService
-    │
-    ▼
-UserRepository
-    │
-    ▼
- Sequelize
-    │
-    ▼
-  MySQL
-```
----
-
-# 11. `src/models`
-
-Contiene i Model Sequelize che rappresentano le entità del database.
-
-La struttura definitiva dei Model verrà stabilita dopo aver ricevuto la specifica del progetto e aver identificato:
-
-* entità;
-* attributi;
-* chiavi primarie;
-* chiavi esterne;
-* relazioni;
-* vincoli.
-
-Esempio futuro:
-
-```text
-src/models/
-├── User.ts
-├── ...
-└── index.ts
-```
-
-I nomi sono solamente esempi: verranno definiti in base alla specifica reale.
-
----
-
-# 12. `src/middleware`
-
-Contiene i middleware Express.
-
-Attualmente sono presenti:
-
-```text
-src/middleware/
-├── logger.ts
-├── validation.ts
-└── errorHandler.ts
-```
-
-## `logger.ts`
+## Logger
 
 Registra le richieste ricevute dal server.
 
-## `validation.ts`
+## Validation
 
-Gestisce la validazione dei dati utilizzando `express-validator`.
+Gestisce la validazione dei dati ricevuti tramite `express-validator`.
 
-## `authMiddleware.ts`
-Protegge le route che richiedono autenticazione JWT.
+## AuthMiddleware
+
+Protegge le route che richiedono autenticazione.
+
 Il middleware:
-1. legge l'header Authorization;
-2. verifica il formato Bearer <token>;
+
+1. legge l'header `Authorization`;
+2. verifica il formato `Bearer <token>`;
 3. verifica il JWT;
-4. salva il payload decodificato nella richiesta;
-5. consente il proseguimento tramite next().
-La rotta /auth/test viene attualmente utilizzata per verificare questo comportamento.
+4. salva il payload nella richiesta;
+5. permette il proseguimento tramite `next()`.
 
-## `errorHandler.ts`
-È il middleware centralizzato per la costruzione delle risposte di errore.
+## ErrorHandler
 
-Se riceve un AppError, utilizza lo statusCode e il messaggio contenuti nell'errore. Gli errori non riconosciuti vengono trasformati in una risposta 500 Internal Server Error.
+Gestisce centralmente gli errori generati dall'applicazione.
 
----
+Gli `AppError` vengono trasformati nella risposta HTTP corrispondente.
 
-## Middleware futuri
-
-In base alla specifica potranno essere aggiunti middleware per:
-
-* autenticazione JWT;
-* autorizzazione tramite ruoli;
-* validazione;
-* gestione di errori personalizzati;
-* altri controlli richiesti dal progetto.
-
-Il middleware dovrà essere utilizzato per funzionalità trasversali, evitando di duplicare gli stessi controlli nei vari controller.
-
----
-
-# 13. `src/types`
-
-Contiene le interfacce e i tipi TypeScript condivisi dall'applicazione.
-
-Attualmente è presente:
+Gli errori non riconosciuti vengono trasformati in:
 
 ```text
-src/types/api.ts
+500 Internal Server Error
 ```
-
-Questa cartella potrà contenere in futuro i tipi necessari per:
-
-* request;
-* response;
-* dati dei Model;
-* payload JWT;
-* DTO;
-* altri oggetti utilizzati tra i vari livelli.
 
 ---
 
-# 14. Autenticazione e autorizzazione
+# 28. Gestione degli errori
 
-L'autenticazione avviene tramite le rotte /auth/register e /auth/login. 
+Gli errori vengono gestiti centralmente quando possibile.
 
-Tramite /auth/register è possibile registrare un utente tramite email, il ruolo viene definito in modo fisso "USER" e inserito nel DB.
-
-Tramite /auth/login è possibile effettuare l'accesso al sistema così da poter essere autenticato e agire in base ai propri privilegi.
-
-La struttura prevista potrà comprendere componenti come:
-
-```text
-src/
-├── controller/
-│   ├── authController.ts
-│   └── ...
-│
-├── middleware/
-│   ├── authMiddleware.ts
-│   └── roleMiddleware.ts
-│
-├── routes/
-│   └── authRoutes.ts
-│
-├── services/
-│   └── authService.ts
-│
-└── ...
-```
-
-Il sistema utilizza JWT per identificare l'utente autenticato e middleware dedicati per controllare i permessi.
-
----
-
-# 15. Gestione degli errori
-
-Gli errori devono essere gestiti in modo centralizzato quando possibile.
-
-Il flusso previsto è:
+Il flusso è:
 
 ```text
 Errore
-  ↓
-Service / Repository
-  ↓
+   │
+   ▼
+Service / Repository / Domain
+   │
+   ▼
 Controller
-  ↓
+   │
+   ▼
 Error Handler
-  ↓
+   │
+   ▼
 HTTP Response
 ```
 
-In futuro potranno essere introdotti errori personalizzati e un sistema centralizzato per costruire le risposte di errore.
+Il progetto utilizza errori personalizzati per distinguere gli errori applicativi dagli errori generici.
 
 ---
 
-# 16. Test
+# 29. Test
 
 I test si trovano nella cartella:
 
@@ -522,35 +1170,55 @@ I test si trovano nella cartella:
 tests/
 ```
 
-Attualmente è presente:
+Il progetto utilizza:
 
-```text
-tests/
-└── app.test.ts
-```
+* **Jest**
+* **Supertest**
 
-I test utilizzano:
-
-* Jest;
-* Supertest.
-
-I test dovranno verificare progressivamente:
+I test verificano progressivamente:
 
 * middleware;
 * endpoint;
 * autenticazione;
-* autorizzazione;
+* validazione;
 * Service;
 * gestione degli errori;
-* comportamento delle funzionalità principali.
+* funzionalità del dominio di gioco.
 
-I test devono essere aggiornati ogni volta che vengono introdotte nuove funzionalità importanti.
+In particolare devono essere presenti almeno i test di due funzioni middleware richiesti dalla specifica del progetto.
+
+I test HTTP utilizzano `app.ts` invece di `server.ts`, evitando di avviare un server reale e di effettuare una connessione al database durante i test che non ne hanno bisogno.
 
 ---
 
-# 17. Docker
+# 30. Test con Postman
 
-Il progetto utilizza Docker Compose per eseguire:
+Le API REST vengono verificate anche tramite chiamate HTTP effettuate con **Postman** o strumenti equivalenti.
+
+Le principali operazioni attualmente disponibili includono:
+
+```text
+POST /auth/register
+POST /auth/login
+GET  /auth/test
+```
+
+I test tramite Postman permettono di verificare:
+
+* registrazione;
+* autenticazione;
+* generazione JWT;
+* accesso alle route protette;
+* validazione degli input;
+* gestione degli errori HTTP.
+
+Con l'implementazione delle funzionalità di gioco verranno aggiunti i test delle relative API.
+
+---
+
+# 31. Docker
+
+Il progetto utilizza Docker Compose per eseguire il backend e il database.
 
 ```text
 ┌───────────────────────┐
@@ -581,7 +1249,7 @@ Il database utilizza un volume Docker per mantenere i dati anche quando il conta
 
 ---
 
-# 18. Variabili d'ambiente
+# 32. Variabili d'ambiente
 
 Le configurazioni sensibili e variabili vengono mantenute nel file:
 
@@ -589,7 +1257,7 @@ Le configurazioni sensibili e variabili vengono mantenute nel file:
 .env
 ```
 
-Esempi di configurazioni:
+Esempi:
 
 ```text
 PORT
@@ -601,13 +1269,59 @@ DB_HOST
 DB_PORT
 ```
 
-Il file `.env` non deve essere condiviso nel repository.
+Il file `.env` non deve essere inserito nel repository.
 
-Per questo motivo è inserito nel `.gitignore`.
+Per questo motivo deve essere presente nel `.gitignore`.
 
 ---
 
-# 19. File JavaScript generati
+# 33. Avvio del progetto
+
+## Installazione delle dipendenze
+
+```bash
+npm install
+```
+
+## Compilazione TypeScript
+
+```bash
+npm run build
+```
+
+## Avvio del server
+
+```bash
+npm start
+```
+
+## Esecuzione dei test
+
+```bash
+npm test
+```
+
+## Avvio tramite Docker Compose
+
+```bash
+docker compose up -d --build
+```
+
+## Visualizzazione dello stato dei container
+
+```bash
+docker compose ps
+```
+
+## Arresto dei container
+
+```bash
+docker compose down
+```
+
+---
+
+# 34. File JavaScript generati
 
 Il codice sorgente viene scritto in TypeScript:
 
@@ -627,177 +1341,282 @@ La compilazione viene effettuata tramite:
 npm run build
 ```
 
-I file presenti in `dist/` sono quindi file generati automaticamente e non devono essere modificati manualmente.
+I file presenti in `dist/` sono generati automaticamente e non devono essere modificati manualmente.
 
 La cartella `dist/` è esclusa dal repository tramite `.gitignore`.
 
 ---
 
-# 20. Comandi principali
+# 35. Diagrammi UML
 
-Installazione delle dipendenze:
+La documentazione definitiva del progetto deve comprendere i diagrammi UML richiesti dalla specifica.
 
-```bash
-npm install
-```
+In particolare:
 
-Compilazione TypeScript:
+* diagramma dei casi d'uso;
+* diagrammi delle sequenze.
 
-```bash
-npm run build
-```
+## Casi d'uso principali
 
-Avvio del server:
-
-```bash
-npm start
-```
-
-Esecuzione dei test:
-
-```bash
-npm test
-```
-
-Avvio dell'ambiente Docker:
-
-```bash
-docker compose up -d --build
-```
-
-Arresto dei container:
-
-```bash
-docker compose down
-```
-
-Visualizzazione dello stato dei container:
-
-```bash
-docker compose ps
-```
-
----
-
-# 21. Struttura da seguire durante lo sviluppo
-
-Quando viene aggiunta una nuova funzionalità, bisogna prima identificare il livello a cui appartiene.
-
-Regola generale:
+Gli attori principali del sistema sono:
 
 ```text
-Nuova API
-   │
-   ├── Route
-   │
-   ├── Controller
-   │
-   ├── Service
-   │
-   ├── Repository / DAO
-   │
-   └── Model
+USER
+ADMIN
+AI
 ```
 
-Non tutta ogni funzionalità dovrà necessariamente utilizzare tutti i livelli, ma la logica dovrà essere inserita nel livello corretto.
-
-### Regole principali
-
-**Route**
-
-Definisce l'endpoint.
-
-**Controller**
-
-Gestisce HTTP request e response.
-
-**Service**
-
-Implementa la logica applicativa.
-
-**Repository / DAO**
-
-Gestisce l'accesso ai dati.
-
-**Model**
-
-Rappresenta le entità del database.
-
-**Middleware**
-
-Gestisce controlli trasversali alle richieste.
-
-**Config**
-
-Contiene configurazioni e connessioni a servizi esterni.
-
-**Types**
-
-Contiene tipi e interfacce condivise.
-
-**Tests**
-
-Verifica il comportamento dell'applicazione.
-
----
-
-# 22. Sviluppo futuro
-
-La struttura verrà completata progressivamente seguendo la specifica del progetto.
-
-Ordine previsto:
+I casi d'uso principali comprendono:
 
 ```text
-1. Analisi della specifica
-          ↓
-2. Identificazione delle entità
-          ↓
-3. Definizione delle relazioni
-          ↓
-4. Creazione dei Model Sequelize
-          ↓
-5. Creazione Repository / DAO
-          ↓
-6. Implementazione dei Service
-          ↓
-7. Implementazione dei Controller
-          ↓
-8. Definizione delle Route
-          ↓
-9. Middleware e autenticazione
-          ↓
-10. Gestione degli errori
-          ↓
-11. Test
-          ↓
-12. Postman
-          ↓
-13. Docker e verifica finale
-          ↓
-14. Documentazione e diagrammi
+USER
+ │
+ ├── Registrarsi
+ ├── Effettuare login
+ ├── Creare partita
+ ├── Scegliere avversario
+ ├── Posizionare navi
+ ├── Attack
+ ├── Scan
+ ├── Shield
+ ├── Move
+ ├── Utilizzare contromossa
+ └── Terminare partita
+
+ADMIN
+ │
+ └── Ricaricare TOKEN
 ```
 
-La struttura definitiva delle cartelle e dei file verrà modificata solamente quando i requisiti del progetto lo richiederanno.
+I diagrammi UML completi verranno mantenuti nella documentazione del progetto e aggiornati insieme all'evoluzione delle funzionalità.
 
 ---
 
-# 23. Stato attuale
+# 36. Diagrammi delle sequenze
 
-Attualmente sono funzionanti:
+I principali diagrammi di sequenza da documentare comprendono:
+
+### Registrazione
+
+```text
+Client
+  │
+  ▼
+AuthRoute
+  │
+  ▼
+AuthController
+  │
+  ▼
+AuthService
+  │
+  ▼
+UserRepository
+  │
+  ▼
+Sequelize
+  │
+  ▼
+MySQL
+```
+
+### Login
+
+```text
+Client
+  │
+  ▼
+AuthController
+  │
+  ▼
+AuthService
+  │
+  ├── UserRepository
+  │
+  ├── bcrypt
+  │
+  └── JWT
+```
+
+### Esecuzione di un'azione
+
+```text
+Client
+  │
+  ▼
+Controller / Service
+  │
+  ▼
+GameEngine
+  │
+  ├── validateMove()
+  │
+  ├── consumeEnergy()
+  │
+  └── action.execute(context)
+              │
+              ▼
+             Game
+              │
+              ▼
+          nextTurn()
+```
+
+I diagrammi verranno aggiornati quando saranno completate le contromosse e la gestione completa dei TOKEN.
+
+---
+
+# 37. Principi di progettazione
+
+Il progetto segue principalmente i principi **SOLID**.
+
+## Single Responsibility Principle
+
+Le classi hanno responsabilità distinte.
+
+Esempi:
+
+```text
+Grid       → gestione della griglia
+Ship       → stato e comportamento della nave
+Fleet      → composizione della flotta
+Game       → stato della partita
+GameEngine  → coordinamento dell'esecuzione
+Attack     → logica dell'attacco
+Scan       → logica della scansione
+```
+
+## Open/Closed Principle
+
+La struttura delle action permette di aggiungere nuovi comandi senza modificare le action esistenti.
+
+Ad esempio una nuova action può implementare `IAction` oppure estendere `BasicMove`.
+
+## Liskov Substitution Principle
+
+Le implementazioni di `IPlayer` possono essere utilizzate tramite l'astrazione comune:
+
+```text
+IPlayer
+   ├── HumanPlayer
+   └── AIPlayer
+```
+
+Analogamente le action possono essere utilizzate tramite `IAction`.
+
+## Interface Segregation Principle
+
+Le interfacce vengono mantenute specifiche rispetto alle responsabilità necessarie.
+
+## Dependency Inversion Principle
+
+Le componenti applicative utilizzano astrazioni dove possibile.
+
+Un esempio è:
+
+```text
+Grid
+  ▲
+  │
+MapGrid
+```
+
+Il resto del dominio può lavorare con `Grid` senza dipendere direttamente dall'implementazione concreta.
+
+---
+
+# 38. Stato attuale del progetto
+
+Attualmente sono presenti e funzionanti:
 
 * server Express;
-* struttura `app.ts` / `server.ts`;
+* separazione `app.ts` / `server.ts`;
 * connessione Sequelize a MySQL;
 * database MySQL tramite Docker;
 * Docker Compose;
 * middleware di logging;
 * middleware di validazione;
+* middleware di autenticazione;
 * gestione centralizzata degli errori;
-* prima route REST;
+* route REST;
 * Service;
 * Controller;
+* Repository;
+* Model `User`;
+* autenticazione JWT;
 * test con Jest e Supertest;
 * compilazione TypeScript;
-* avvio del backend tramite Docker.
+* struttura del dominio di gioco;
+* `Coordinates`;
+* `Grid`;
+* `MapGrid`;
+* `GridFactory`;
+* `Cell` e `CellState`;
+* `Ship`;
+* `Fleet`;
+* `HumanPlayer`;
+* `AIPlayer`;
+* `Game`;
+* `GameState`;
+* `GameEngine`;
+* struttura Command per le action;
+* `Attack`;
+* `Scan`;
+* `Shield`;
+* `Move`.
 
-L'implementazione delle funzionalità specifiche del progetto verrà effettuata dopo aver ricevuto e analizzato la relativa specifica.
+Sono ancora da completare:
+
+* gestione completa dei TOKEN;
+* gestione completa del ciclo delle contromosse;
+* `PASS`;
+* comportamento definitivo delle contromosse;
+* `silence credits`;
+* posizionamento automatico dell'IA;
+* creazione completa della partita;
+* API REST per la gestione delle partite;
+* test completi delle funzionalità di gioco;
+* diagrammi UML definitivi;
+* test Postman delle API di gioco.
+
+---
+
+# 39. Sviluppo futuro
+
+Le funzionalità mancanti verranno implementate progressivamente seguendo la specifica del progetto.
+
+Ordine previsto:
+
+```text
+1. Completamento dominio di gioco
+          ↓
+2. Gestione TOKEN
+          ↓
+3. Gestione Energy e turni
+          ↓
+4. Gestione contromosse
+          ↓
+5. PASS e finestre di risposta
+          ↓
+6. Posizionamento IA
+          ↓
+7. Creazione e gestione partite
+          ↓
+8. Repository / Service
+          ↓
+9. Controller
+          ↓
+10. Route
+          ↓
+11. Test
+          ↓
+12. Postman
+          ↓
+13. Diagrammi UML
+          ↓
+14. Docker e verifica finale
+          ↓
+15. Documentazione finale
+```
+
+La struttura del progetto verrà modificata solamente quando i requisiti della specifica lo richiederanno.

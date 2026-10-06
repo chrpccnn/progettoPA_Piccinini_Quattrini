@@ -1,0 +1,22 @@
+title Sequence diagram /auth/register
+
+client->authRoutes:POST /auth/login
+authRoutes->authController:login(req, res)
+authController->authService:login(email, password)
+authService->authRepository: findByEmail(email)
+authRepository->MySQL: SELECT * FROM users WHERE email = ?
+MySQL-->authRepository: User | null
+authRepository-->authService: User | null
+alt existingUser != null
+authService->authService: jwt.sign(...)
+authService->authController: 200, ok
+authController-->client: authenticated
+
+else existingUser == null
+authService-->errorHandler: 401 - Invalid credentials
+
+else isValidPassword == False
+authService-->errorHandler: 401 - Invalid credentials
+end
+
+

@@ -1,10 +1,11 @@
 import { NextFunction, Request, Response } from "express";
 import { AuthService } from "../services/authService";
 
-export async function login(req: Request, res: Response, next: NextFunction) {
+
+export async function register(req: Request, res: Response, next: NextFunction) {
     try{
         const { email, password } = req.body;
-        const result = await AuthService.login(email, password);
+        const result = await AuthService.register(email, password);
         return res.status(201).json(result);
     }
     catch (err)
@@ -13,10 +14,10 @@ export async function login(req: Request, res: Response, next: NextFunction) {
     }
 }
 
-export async function register(req: Request, res: Response, next: NextFunction) {
+export async function login(req: Request, res: Response, next: NextFunction) {
     try{
         const { email, password } = req.body;
-        const result = await AuthService.register(email, password);
+        const result = await AuthService.login(email, password);
         return res.status(200).json(result);
     }
     catch (err)

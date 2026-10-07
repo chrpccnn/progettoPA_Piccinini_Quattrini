@@ -28,4 +28,8 @@ export class ErrorFactory {
     static invalidToken(): AppError{
         return new AppError(401, "Invalid Token");
     }
+
+    static forbidden(): AppError{
+        return new AppError(403, "Forbidden");
+    }
 }

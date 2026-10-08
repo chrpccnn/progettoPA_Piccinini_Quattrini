@@ -32,4 +32,12 @@ export class ErrorFactory {
     static forbidden(): AppError{
         return new AppError(403, "Forbidden");
     }
+
+    static unauthorized(): AppError{
+        return new AppError(401, "Unauthorized");
+    }
+
+    static badRequest(): AppError{
+        return new AppError(400, "Bad request");
+    }
 }

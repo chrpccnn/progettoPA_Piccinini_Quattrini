@@ -1,12 +1,13 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/database";
 import { UserType } from "./UserType";
+import { mailSchema, passwordSchema, roleSchema } from "../Zod/zodSchemas";
 
 export interface UserAttributes {
     id: number;
-    email: string;
-    password: string;
-    role: "user" | "admin";
+    email: mailSchema;
+    password: passwordSchema;
+    role: roleSchema;
     type: UserType;
     tokens: number;
     createdAt: Date;
@@ -23,9 +24,9 @@ export class User
     implements UserAttributes
 {
     declare id: number;
-    declare email: string;
-    declare password: string;
-    declare role: "user" | "admin";
+    declare email: mailSchema;
+    declare password: passwordSchema;
+    declare role: roleSchema;
     declare type: UserType;
     declare tokens: number;
     declare createdAt: Date;

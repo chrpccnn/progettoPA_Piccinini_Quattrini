@@ -1,0 +1,18 @@
+title Sequence diagram /auth/register
+
+client->gameRoutes:POST /creategame
+gameRoutes->authMiddleware:POST /creategame
+authMiddleware->authMiddleware:next()
+authMiddleware-->gameRoutes: valid
+gameRoutes->roleMiddleware: POST /creategame
+roleMiddleware-->gameRoutes: valid
+gameRoutes->gameValuesMiddleware: POST /creategame
+gameValuesMiddleware-->gameRoutes: valid
+gameRoutes->gameController: createGame(...)
+gameController->gameService: createGame(...)
+gameService->gameRepository: findGame()
+gameRepository->mySql: SELECT ...
+mySql-->gameRepository: gameID
+gameRepository-->gameService: gameID
+
+NON FINITO

@@ -1,15 +1,19 @@
 import { Request, Response, NextFunction } from "express";
-import { ErrorFactory } from "../errors/ErrorFactory";
+import { ErrorFactory } from "../errors/errorFactory";
 import { AuthenticatedRequest } from "./authMiddleware";
+import * as zod from "../Zod/zodSchemas"
 
 export function userRoleMiddleware(
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
 ) {
-    if (!req.user || req.user.role !== "user") {
-        return next(ErrorFactory.forbidden());
+    try{
+        zod.modeSchema.parse(req.body.mode)
+        next();
     }
-
-    next();
+    catch
+    {
+        next(ErrorFactory.badRequest)
+    }
 }

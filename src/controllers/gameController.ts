@@ -1,13 +1,22 @@
 import { NextFunction, Request, Response } from "express";
 import { AuthenticatedRequest } from "../middleware/authMiddleware";
+import { GameService } from "../services/gameService";
+import { ErrorFactory } from "../errors/errorFactory";
 
-export async function createGame(req:AuthenticatedRequest, res: Response, next: NextFunction) {
+export async function createGame(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+) {
     try {
-        return res.status(200).json({
-            message: "Utente autorizzato alla creazione della partita",
-            user: req.user
-        });
-    } catch (err) {
-        next(err);
+        const result = await GameService.createGame(
+            req.user!.id,
+            req.body
+        );
+
+        return res.status(201).json(result);
+    }
+    catch{
+        next(ErrorFactory.badRequest());
     }
 }

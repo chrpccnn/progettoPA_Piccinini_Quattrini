@@ -45,6 +45,7 @@ Il progetto segue una struttura a livelli e utilizza principi di progettazione o
 * **Jest** — testing
 * **Supertest** — test delle API HTTP
 * **express-validator** — validazione dei dati ricevuti dalle API
+* **Zod** — validazione e normalizzazione della configurazione delle partite
 * **dotenv** — gestione delle variabili d'ambiente
 * **bcrypt** — hashing delle password
 * **jsonwebtoken** — autenticazione tramite JWT
@@ -112,7 +113,8 @@ progettopa_piccinini_quattrini/
 │   │
 │   ├── controllers/
 │   │   ├── indexController.ts
-│   │   └── authController.ts
+│   │   ├── authController.ts
+│   │   └── gameController.ts
 │   │
 │   ├── errors/
 │   │   ├── appError.ts
@@ -120,6 +122,8 @@ progettopa_piccinini_quattrini/
 │   │
 │   ├── middleware/
 │   │   ├── authMiddleware.ts
+│   │   ├── roleMiddleware.ts
+│   │   ├── gameValidatorMiddleware.ts
 │   │   ├── logger.ts
 │   │   ├── validation.ts
 │   │   └── errorHandler.ts
@@ -132,7 +136,11 @@ progettopa_piccinini_quattrini/
 │   │
 │   ├── routes/
 │   │   ├── authRoutes.ts
+│   │   ├── gameRoutes.ts
 │   │   └── index.ts
+│   │
+│   ├── Zod/
+│   │   └── zodSchemas.ts
 │   │
 │   ├── services/
 │   │   ├── authService.ts
@@ -1063,6 +1071,7 @@ Qui vengono registrati:
 * logger;
 * router;
 * route di autenticazione;
+* route di gioco;
 * error handler.
 
 Il server HTTP non viene avviato da `app.ts`.
@@ -1099,6 +1108,8 @@ Sono presenti:
 logger.ts
 validation.ts
 authMiddleware.ts
+roleMiddleware.ts
+gameValidatorMiddleware.ts
 errorHandler.ts
 ```
 
@@ -1109,6 +1120,8 @@ Registra le richieste ricevute dal server.
 ## Validation
 
 Gestisce la validazione dei dati ricevuti tramite `express-validator`.
+
+Per la configurazione della partita viene inoltre utilizzato `gameValidatorMiddleware`, che valida il body tramite gli schema Zod definiti in `src/Zod/zodSchemas.ts` e applica i valori di default previsti.
 
 ## AuthMiddleware
 
@@ -1121,6 +1134,10 @@ Il middleware:
 3. verifica il JWT;
 4. salva il payload nella richiesta;
 5. permette il proseguimento tramite `next()`.
+
+## RoleMiddleware
+
+`roleMiddleware` verifica che l'utente autenticato possieda il ruolo necessario per accedere alle route di gioco protette.
 
 ## ErrorHandler
 
@@ -1200,7 +1217,7 @@ Le principali operazioni attualmente disponibili includono:
 ```text
 POST /auth/register
 POST /auth/login
-GET  /auth/test
+POST /creategame
 ```
 
 I test tramite Postman permettono di verificare:
@@ -1209,10 +1226,11 @@ I test tramite Postman permettono di verificare:
 * autenticazione;
 * generazione JWT;
 * accesso alle route protette;
-* validazione degli input;
+* autorizzazione in base al ruolo;
+* validazione della configurazione di una partita;
 * gestione degli errori HTTP.
 
-Con l'implementazione delle funzionalità di gioco verranno aggiunti i test delle relative API.
+La route `POST /creategame` è attualmente protetta tramite JWT e controllo del ruolo e valida il body tramite Zod. La creazione e persistenza effettiva della partita devono ancora essere completate.
 
 ---
 
@@ -1537,6 +1555,9 @@ Attualmente sono presenti e funzionanti:
 * middleware di logging;
 * middleware di validazione;
 * middleware di autenticazione;
+* middleware di autorizzazione per il ruolo utente;
+* validazione Zod della configurazione di gioco;
+* route protetta `POST /creategame`;
 * gestione centralizzata degli errori;
 * route REST;
 * Service;

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { ErrorFactory } from "../errors/ErrorFactory";
+import { ErrorFactory } from "../errors/errorFactory";
 
 export interface AuthenticatedRequest extends Request {
   user?: any;
@@ -31,7 +31,7 @@ export default function authMiddleware(
         req.user = decoded;
         next();
     } 
-    catch (err)
+    catch
     {
         return next(ErrorFactory.invalidToken());
     }

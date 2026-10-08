@@ -91,4 +91,9 @@ export class Scan extends BasicMove {
 
         this.occupiedCells = occupiedCells;
     }
+    public setOccupiedCells(
+    occupiedCells: number
+): void {
+    this.occupiedCells = occupiedCells;
+}
 }

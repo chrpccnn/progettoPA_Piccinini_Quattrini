@@ -1,9 +1,6 @@
 import { DataTypes, Model, Optional } from "sequelize";
-
 import sequelize from "../config/database";
-
 import { UserType } from "./UserType";
-
 
 export interface UserAttributes {
     id: number;
@@ -21,7 +18,6 @@ export interface UserCreationAttributes
         "id" | "createdAt" | "type" | "tokens"
     > {}
 
-
 export class User
     extends Model<UserAttributes, UserCreationAttributes>
     implements UserAttributes
@@ -30,30 +26,33 @@ export class User
     declare email: string;
     declare password: string;
     declare role: "user" | "admin";
-
     declare type: UserType;
     declare tokens: number;
     declare createdAt: Date;
-
 
     public isValid(): boolean {
         return (
             this.id > 0 &&
             this.email.length > 0 &&
-            this.password.length > 0 &&
-            this.tokens >= 0
+            this.password.length > 0
         );
     }
 
-
-    public spendToken(): void {
-        if (this.tokens <= 0) {
-            throw new Error("Insufficient tokens.");
-        }
-
-        this.tokens -= 1;
+    public getTokens(): number {
+        return Number(this.tokens);
     }
 
+    public spendTokens(amount: number): void {
+        if (amount <= 0) {
+            throw new Error(
+                "The number of tokens must be greater than zero."
+            );
+        }
+
+        this.tokens = Number(
+            (this.getTokens() - amount).toFixed(3)
+        );
+    }
 
     public addTokens(amount: number): void {
         if (amount <= 0) {
@@ -62,10 +61,15 @@ export class User
             );
         }
 
-        this.tokens += amount;
+        this.tokens = Number(
+            (this.getTokens() + amount).toFixed(3)
+        );
+    }
+
+    public spendToken(): void {
+        this.spendTokens(1);
     }
 }
-
 
 User.init(
     {
@@ -74,7 +78,6 @@ User.init(
             autoIncrement: true,
             primaryKey: true,
         },
-
         email: {
             type: DataTypes.STRING,
             allowNull: false,
@@ -86,33 +89,25 @@ User.init(
                 },
             },
         },
-
         password: {
             type: DataTypes.STRING,
             allowNull: false,
         },
-
         role: {
             type: DataTypes.ENUM("user", "admin"),
             allowNull: false,
             defaultValue: "user",
         },
-
         type: {
             type: DataTypes.ENUM(...Object.values(UserType)),
             allowNull: false,
             defaultValue: UserType.PLAYER,
         },
-
         tokens: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.DECIMAL(10, 3),
             allowNull: false,
             defaultValue: 0,
-            validate: {
-                min: 0,
-            },
         },
-
         createdAt: {
             type: DataTypes.DATE,
             allowNull: false,

@@ -1,8 +1,13 @@
+import { IAction } from "../Action/IAction";
+import { Countermeasure } from "../Action/Countermeasure";
+import { Game } from "../Engine/Game";
+import { GameEngine } from "../Engine/GameEngine";
 import { Fleet } from "../fleet/Fleet";
 import { IPlayer } from "./IPlayer";
-
+import { PlayerType } from "./PlayerType";
 
 export class AIPlayer implements IPlayer {
+
     constructor(
         private readonly id: string,
         private readonly fleet: Fleet,
@@ -14,7 +19,6 @@ export class AIPlayer implements IPlayer {
     public getId(): string {
         return this.id;
     }
-
 
     public getFleet(): Fleet {
         return this.fleet;
@@ -29,29 +33,64 @@ export class AIPlayer implements IPlayer {
     }
 
     public getUsers(): string[] {
-        return this.users;
+        return [...this.users];
     }
 
-    public makeMove(): void {
-        // TODO: implementare con le classi Action
+    public getType(): PlayerType {
+        return PlayerType.AI;
     }
 
-    public makeCounterMeasure(): void {
-        // TODO: implementare con le classi Action
+    public makeMove(
+        game: Game,
+        engine: GameEngine,
+        action: IAction
+    ): void {
+
+        engine.executeAction(
+            game,
+            this,
+            action
+        );
     }
-    public spendEnergy(amount: number): void {
+
+    public makeCounterMeasure(
+        game: Game,
+        engine: GameEngine,
+        countermeasure: Countermeasure
+    ): void {
+
+        engine.executeCountermeasure(
+            game,
+            this,
+            countermeasure
+        );
+    }
+
+    public addEnergy(amount: number): void {
     if (amount <= 0) {
         throw new Error(
             "Energy amount must be greater than zero."
         );
     }
 
-    if (this.energy < amount) {
-        throw new Error(
-            "Insufficient energy."
-        );
-    }
-
-    this.energy -= amount;
+    this.energy = Math.min(
+        this.energy + amount,
+        6
+    );
 }
+    public spendEnergy(amount: number): void {
+        if (amount <= 0) {
+            throw new Error(
+                "Energy amount must be greater than zero."
+            );
+        }
+
+        if (this.energy < amount) {
+            throw new Error(
+                "Insufficient energy."
+            );
+        }
+
+        this.energy -= amount;
+    }
 }

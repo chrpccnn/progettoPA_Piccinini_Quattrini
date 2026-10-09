@@ -16,7 +16,25 @@ export const pwSchema = z
 
 export const modeSchema = z.enum(["ai", "user"]);
 export const role = z.enum(["admin", "user"]);
+export const type = z.enum(["admin", "player"]);
+export const id = z
+    .number()
+    .int()
+    .positive();
 
+export const shipOrientation = z.object({
+    alongX: z
+    .boolean()
+    .default(true),
+
+    alongY: z
+    .boolean()
+    .default(true),
+
+    alongZ: z
+    .boolean()
+    .default(true),
+})
 
 export const gridValueSchema = z
     // valore base per creare la griglia
@@ -150,6 +168,7 @@ export const actionsSchema = z.object({
 // parti dello schema in comune tra entrambe le modalità
 export const commonSchema = z.object({
     grid: gridSchema.prefault({}),
+    orientation: shipOrientation.prefault({}),
     ships: shipSchema.prefault({}),
     energy: energyCredits,
     turnCredits: TurnCredits,
@@ -172,6 +191,8 @@ export const gameSchema = z.discriminatedUnion("mode", [
 ]);
 
 export type GameInput = z.infer<typeof gameSchema>;
-export type mailSchema = z.infer<typeof emailSchema>;
-export type passwordSchema = z.infer<typeof pwSchema>;
-export type roleSchema = z.infer<typeof role>;
+export type MailSchema = z.infer<typeof emailSchema>;
+export type PasswordSchema = z.infer<typeof pwSchema>;
+export type RoleSchema = z.infer<typeof role>;
+export type TypeSchema = z.infer<typeof type>;
+export type IdSchema = z.infer<typeof id>;

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import * as zod from "../Zod/zodSchemas"
+import {gameSchema} from "../Zod/zodSchemas"
 import { ErrorFactory } from "../errors/errorFactory";
 
 export default function gameValidatorMiddleware(
@@ -8,7 +8,7 @@ export default function gameValidatorMiddleware(
   next: NextFunction
 ){
     try{
-        req.body = zod.gameSchema.parse(req.body);
+        req.body = gameSchema.parse(req.body);
         next();
     }
     catch

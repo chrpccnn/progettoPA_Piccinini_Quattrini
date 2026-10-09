@@ -20,3 +20,19 @@ export async function createGame(
         next(ErrorFactory.badRequest());
     }
 }
+
+export async function shipPositioning(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+) {
+    try {
+        const result = await GameService.shipPositioning( 
+        );
+
+        return res.status(201).json(result);
+    }
+    catch{
+        next(ErrorFactory.badRequest());
+    }
+}

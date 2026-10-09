@@ -35,4 +35,10 @@ export class GameService{
 
     } 
 
+    static async shipPositioning(){
+        
+    }
 }
+
+
+

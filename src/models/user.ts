@@ -1,14 +1,15 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/database";
-import { UserType } from "./UserType";
-import { mailSchema, passwordSchema, roleSchema } from "../Zod/zodSchemas";
+import { UserRole, UserType } from "./UserType";
+import { MailSchema, PasswordSchema, RoleSchema, TypeSchema, emailSchema, pwSchema, id, IdSchema} from "../Zod/zodSchemas";
+import { ErrorFactory } from "../errors/errorFactory";
 
 export interface UserAttributes {
     id: number;
-    email: mailSchema;
-    password: passwordSchema;
-    role: roleSchema;
-    type: UserType;
+    email: MailSchema;
+    password: PasswordSchema;
+    role: RoleSchema;
+    type: TypeSchema;
     tokens: number;
     createdAt: Date;
 }
@@ -23,19 +24,19 @@ export class User
     extends Model<UserAttributes, UserCreationAttributes>
     implements UserAttributes
 {
-    declare id: number;
-    declare email: mailSchema;
-    declare password: passwordSchema;
-    declare role: roleSchema;
-    declare type: UserType;
+    declare id: IdSchema;
+    declare email: MailSchema;
+    declare password: PasswordSchema;
+    declare role: RoleSchema;
+    declare type: TypeSchema;
     declare tokens: number;
     declare createdAt: Date;
 
     public isValid(): boolean {
         return (
-            this.id > 0 &&
-            this.email.length > 0 &&
-            this.password.length > 0
+            id.safeParse(this.id).success &&
+            emailSchema.safeParse(this.email).success &&
+            pwSchema.safeParse(this.password).success
         );
     }
 
@@ -45,9 +46,7 @@ export class User
 
     public spendTokens(amount: number): void {
         if (amount <= 0) {
-            throw new Error(
-                "The number of tokens must be greater than zero."
-            );
+           throw ErrorFactory.forbidden();
         }
 
         this.tokens = Number(
@@ -57,9 +56,7 @@ export class User
 
     public addTokens(amount: number): void {
         if (amount <= 0) {
-            throw new Error(
-                "The number of tokens must be greater than zero."
-            );
+            throw ErrorFactory.forbidden();
         }
 
         this.tokens = Number(
@@ -95,12 +92,12 @@ User.init(
             allowNull: false,
         },
         role: {
-            type: DataTypes.ENUM("user", "admin"),
+            type: DataTypes.ENUM(UserRole.ADMIN, UserRole.USER),
             allowNull: false,
-            defaultValue: "user",
+            defaultValue: UserRole.USER,
         },
         type: {
-            type: DataTypes.ENUM(...Object.values(UserType)),
+            type: DataTypes.ENUM(UserType.ADMIN, UserType.PLAYER),
             allowNull: false,
             defaultValue: UserType.PLAYER,
         },

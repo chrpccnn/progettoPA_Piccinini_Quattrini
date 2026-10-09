@@ -14,7 +14,7 @@ export interface IPlayer {
     getUsers(): string[];
 
     spendEnergy(amount: number): void;
-    addEnergy(amount: number): void;
+    addEnergy(amount: number, max: number): void;
 
     makeMove(
         game: Game,

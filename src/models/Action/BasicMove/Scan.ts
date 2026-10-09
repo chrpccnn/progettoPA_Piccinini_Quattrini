@@ -1,4 +1,3 @@
-import { CellState } from "../../grid/Cell";
 import { Coordinates } from "../../grid/Coordinates";
 import { ActionContext } from "../ActionContext";
 import { BasicMove } from "../BasicMove";
@@ -55,39 +54,27 @@ export class Scan extends BasicMove {
             );
         }
 
-        let occupiedCells = 0;
+        /*
+         * La griglia non tiene traccia delle navi, quindi si contano
+         * le posizioni della flotta avversaria dentro il cubo 3x3x3.
+         */
+        const opponent = context.game
+            .getPlayers()
+            .find(player => player !== context.player);
 
-        for (
-            let x = this.center.x - 1;
-            x <= this.center.x + 1;
-            x++
-        ) {
-            for (
-                let y = this.center.y - 1;
-                y <= this.center.y + 1;
-                y++
-            ) {
-                for (
-                    let z = this.center.z - 1;
-                    z <= this.center.z + 1;
-                    z++
-                ) {
-
-                    const coordinates =
-                        Coordinates.create(x, y, z);
-
-                    const state =
-                        grid.getCellState(coordinates);
-
-                    if (
-                        state === CellState.OCCUPIED ||
-                        state === CellState.HIT
-                    ) {
-                        occupiedCells++;
-                    }
-                }
-            }
+        if (opponent === undefined) {
+            throw new Error("Opponent not found.");
         }
+
+        const occupiedCells = opponent
+            .getFleet()
+            .getShips()
+            .flatMap(ship => ship.getPositions())
+            .filter(position =>
+                Math.abs(position.x - this.center.x) <= 1 &&
+                Math.abs(position.y - this.center.y) <= 1 &&
+                Math.abs(position.z - this.center.z) <= 1
+            ).length;
 
         this.occupiedCells = occupiedCells;
     }

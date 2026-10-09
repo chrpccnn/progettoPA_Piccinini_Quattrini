@@ -2,6 +2,7 @@ import { ShipType } from "./ShipType";
 import { Orientation } from "./Orientation";
 import { ShipStatus } from "./ShipStatus";
 import { Coordinates } from "../grid/Coordinates";
+import { SHIP_SIZES } from "./FleetConfig";
 
 export class Ship {
 
@@ -155,17 +156,6 @@ export class Ship {
         type: ShipType
     ): number {
 
-        const sizes: Record<ShipType, number> = {
-
-            [ShipType.MOTHER_SHIP]: 5,
-
-            [ShipType.CRUISER]: 4,
-
-            [ShipType.SCOUT]: 2,
-
-            [ShipType.DRONE]: 1
-        };
-
-        return sizes[type];
+        return SHIP_SIZES[type];
     }
 }

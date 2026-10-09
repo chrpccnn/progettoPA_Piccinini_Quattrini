@@ -1,10 +1,14 @@
 import { TokenCost } from "../../TokenCost";
+import { Orientation } from "../fleet/Orientation";
+import { Coordinates } from "../grid/Coordinates";
 import type { IAction } from "../Action/IAction";
 import { Grid } from "../grid/Igrid";
 import { IPlayer } from "../Players/IPlayer";
 import { PlayerType } from "../Players/PlayerType";
 import { User } from "../user";
 import { GameState } from "./GameState";
+import { MoveRecord } from "../MoveRecord";
+import { EnergyConfig, DEFAULT_ENERGY_CONFIG, validateEnergyConfig } from "./EnergyConfig";
 
 export class Game {
 
@@ -24,12 +28,22 @@ export class Game {
     private pendingAction?: IAction;
     private pendingActionPlayer?: IPlayer;
 
+    /* Scudi attivi di ogni giocatore (sulle sue celle). */
+    private readonly shields: Map<IPlayer, Set<Coordinates>> =
+        new Map();
+
+    private readonly history: MoveRecord[] = [];
+
     constructor(
         private readonly id: string,
         private readonly grid: Grid,
         private readonly players: IPlayer[],
         private readonly tokenOwner: User,
-        silence: number = Game.DEFAULT_SILENCE
+        silence: number = Game.DEFAULT_SILENCE,
+        private readonly energyConfig: EnergyConfig =
+            { ...DEFAULT_ENERGY_CONFIG },
+        private readonly allowedOrientations: Orientation[] =
+            Object.values(Orientation)
     ) {
         if (players.length !== 2) {
             throw new Error(
@@ -74,10 +88,19 @@ export class Game {
             );
         }
 
+        validateEnergyConfig(energyConfig);
+
+        if (allowedOrientations.length === 0) {
+            throw new Error(
+                "At least one orientation must be allowed."
+            );
+        }
+
         this.silence = silence;
 
         for (const player of players) {
             this.silenceUsed.set(player, 0);
+            this.shields.set(player, new Set());
         }
 
         this.state = GameState.WAITING;
@@ -169,7 +192,10 @@ export class Game {
     const nextPlayer =
         this.players[this.currentPlayerIndex];
 
-    nextPlayer.addEnergy(2);
+    nextPlayer.addEnergy(
+        this.energyConfig.regeneration,
+        this.energyConfig.max
+    );
 }
 
     public end(winner: IPlayer): void {
@@ -272,5 +298,109 @@ export class Game {
     public clearPendingAction(): void {
         this.pendingAction = undefined;
         this.pendingActionPlayer = undefined;
+    }
+
+    // -------------------------
+    // CONFIG
+    // -------------------------
+
+    public getEnergyConfig(): EnergyConfig {
+        return { ...this.energyConfig };
+    }
+
+    public getAllowedOrientations(): Orientation[] {
+        return [...this.allowedOrientations];
+    }
+
+    // -------------------------
+    // SHIELD
+    // -------------------------
+
+    public addShield(
+        player: IPlayer,
+        coordinates: Coordinates
+    ): void {
+        const cells = this.shields.get(player);
+
+        if (cells === undefined) {
+            throw new Error(
+                "The player does not belong to this game."
+            );
+        }
+
+        if (!this.grid.isValid(coordinates)) {
+            throw new Error(
+                "Shield coordinates are outside the grid."
+            );
+        }
+
+        if (cells.has(coordinates)) {
+            throw new Error(
+                "This cell is already shielded."
+            );
+        }
+
+        cells.add(coordinates);
+    }
+
+    public hasShield(
+        player: IPlayer,
+        coordinates: Coordinates
+    ): boolean {
+        return this.shields.get(player)?.has(coordinates) ?? false;
+    }
+
+    /*
+     * Rimuove lo scudo se presente.
+     * Ritorna true se lo scudo ha assorbito il colpo.
+     */
+    public consumeShield(
+        player: IPlayer,
+        coordinates: Coordinates
+    ): boolean {
+        return this.shields.get(player)?.delete(coordinates) ?? false;
+    }
+
+    public getShields(player: IPlayer): Coordinates[] {
+        return [...(this.shields.get(player) ?? [])];
+    }
+
+    // -------------------------
+    // HISTORY
+    // -------------------------
+
+    public recordMove(
+        entry: Omit<MoveRecord, "turn" | "timestamp">
+    ): void {
+        this.history.push({
+            ...entry,
+            turn: this.turn,
+            timestamp: new Date()
+        });
+    }
+
+    public getHistory(): MoveRecord[] {
+        return [...this.history];
+    }
+
+    /*
+     * Esito di una mossa come lo vede viewer.
+     * Un attacco sotto Radio Silence resta nascosto
+     * all'attaccante fino alla fine della partita.
+     * Senza viewer si ottiene l'esito reale.
+     */
+    public getVisibleResult(
+        record: MoveRecord,
+        viewer?: IPlayer
+    ): string | undefined {
+        if (
+            record.hidden &&
+            viewer === record.player &&
+            this.state !== GameState.FINISHED
+        ) {
+            return "HIDDEN";
+        }
+
+        return record.result;
     }
 }

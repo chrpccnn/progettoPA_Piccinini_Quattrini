@@ -3,5 +3,6 @@ export enum AttackResult {
     HIT = "HIT",
     DESTROYED = "DESTROYED",
     GAME_OVER = "GAME_OVER",
-    BLOCKER = "BLOCKER"
+    BLOCKER = "BLOCKER",
+    SHIELDED = "SHIELDED"
 }

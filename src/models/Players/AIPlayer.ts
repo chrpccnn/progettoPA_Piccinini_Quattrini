@@ -65,19 +65,19 @@ export class AIPlayer implements IPlayer {
             countermeasure
         );
     }
+    public addEnergy(amount: number, max: number): void {
+        if (amount < 0) {
+            throw new Error(
+                "Energy amount cannot be negative."
+            );
+        }
 
-    public addEnergy(amount: number): void {
-    if (amount <= 0) {
-        throw new Error(
-            "Energy amount must be greater than zero."
+        this.energy = Math.min(
+            this.energy + amount,
+            max
         );
     }
 
-    this.energy = Math.min(
-        this.energy + amount,
-        6
-    );
-}
     public spendEnergy(amount: number): void {
         if (amount <= 0) {
             throw new Error(

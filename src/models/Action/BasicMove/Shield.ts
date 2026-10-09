@@ -32,6 +32,15 @@ export class Shield extends BasicMove {
             );
         }
 
+        /*
+         * Lo scudo protegge la cella del giocatore che lo attiva
+         * finché non assorbe un colpo. Al massimo uno per cella.
+         */
+        context.game.addShield(
+            context.player,
+            this.coordinates
+        );
+
         this.active = true;
     }
 

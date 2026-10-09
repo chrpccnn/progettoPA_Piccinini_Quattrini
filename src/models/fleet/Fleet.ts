@@ -1,5 +1,5 @@
-
 import { Ship } from "./Ship";
+import { MAX_SHIPS } from "./FleetConfig";
 import { ShipType } from "./ShipType";
 
 export class Fleet {
@@ -107,21 +107,6 @@ export class Fleet {
 
         const type = ship.getType();
 
-        const limits: Record<ShipType, number> = {
-
-            [ShipType.MOTHER_SHIP]: 3,
-
-            [ShipType.CRUISER]: 3,
-
-            [ShipType.SCOUT]: 4,
-
-            [ShipType.DRONE]: 5
-        };
-
-        return (
-            this.countShips(type) <
-            limits[type]
-        );
+        return this.countShips(type) < MAX_SHIPS[type];
     }
 }
-

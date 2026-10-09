@@ -33,6 +33,14 @@ export class Attack extends BasicMove {
             throw new Error("Opponent not found.");
         }
 
+        /*
+         * Uno scudo sulla cella assorbe il primo colpo (nessun danno
+         * alla nave) e poi viene rimosso.
+         */
+        if (context.game.consumeShield(opponent, this.coordinates)) {
+            return AttackResult.SHIELDED;
+        }
+
         const fleet = opponent.getFleet();
 
         for (const ship of fleet.getShips()) {

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { ErrorFactory } from "../errors/errorFactory";
+import { ErrorFactory } from "../errors/ErrorFactory";
 
 export interface AuthenticatedRequest extends Request {
   user?: any;

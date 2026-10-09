@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import {gameSchema} from "../Zod/zodSchemas"
-import { ErrorFactory } from "../errors/errorFactory";
+import { ErrorFactory } from "../errors/ErrorFactory";
 
 export default function gameValidatorMiddleware(
   req: Request,

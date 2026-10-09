@@ -2,7 +2,7 @@ import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/database";
 import { UserRole, UserType } from "./UserType";
 import { MailSchema, PasswordSchema, RoleSchema, TypeSchema, emailSchema, pwSchema, id, IdSchema} from "../Zod/zodSchemas";
-import { ErrorFactory } from "../errors/errorFactory";
+import { ErrorFactory } from "../errors/ErrorFactory";
 
 export interface UserAttributes {
     id: number;

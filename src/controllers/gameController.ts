@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { AuthenticatedRequest } from "../middleware/authMiddleware";
 import { GameService } from "../services/gameService";
-import { ErrorFactory } from "../errors/errorFactory";
+import { ErrorFactory } from "../errors/ErrorFactory";
 
 export async function createGame(
     req: AuthenticatedRequest,

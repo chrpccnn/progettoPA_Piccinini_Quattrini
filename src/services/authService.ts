@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import UserRepository from "../repository/authRepository";
-import { ErrorFactory } from "../errors/errorFactory";
+import { ErrorFactory } from "../errors/ErrorFactory";
 
 export class AuthService {
     static async register(email: string, plainPassword: string) {

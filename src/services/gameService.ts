@@ -1,5 +1,5 @@
 import { GameInput } from "../Zod/zodSchemas";
-import { ErrorFactory } from "../errors/errorFactory";
+import { ErrorFactory } from "../errors/ErrorFactory";
 import UserRepository from "../repository/authRepository"
 import { GridFactory } from "../models/grid/GridFactory";
 

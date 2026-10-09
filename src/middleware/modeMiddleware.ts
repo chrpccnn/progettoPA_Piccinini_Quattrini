@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { ErrorFactory } from "../errors/errorFactory";
+import { ErrorFactory } from "../errors/ErrorFactory";
 import { AuthenticatedRequest } from "./authMiddleware";
 import * as zod from "../Zod/zodSchemas"
 

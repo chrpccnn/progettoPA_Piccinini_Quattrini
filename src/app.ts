@@ -14,9 +14,9 @@ app.use(express.json());
 app.use(logger);
 
 app.use("/", router);
-app.use("/", gameRoutes);
-
-app.use("/auth", authRoutes)
+app.use("/auth", authRoutes);
+app.use("/game", gameRoutes);
+//app.use("/admin");
 
 app.use(errorHandler);
 

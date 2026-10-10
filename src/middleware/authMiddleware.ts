@@ -1,19 +1,24 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { ErrorFactory } from "../errors/ErrorFactory";
+import { jwtPayloadSchema } from "../Zod/zodSchemas"
 
-export interface AuthenticatedRequest extends Request {
-  user?: any;
+export interface AuthenticatedRequest<P = {}> extends Request<P> {
+    user?: {
+        id: number;
+        email: string;
+        role: string;
+    };
 }
 
 export default function authMiddleware(
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-){
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+) {
     const authHeader = req.headers.authorization;
 
-    if(!authHeader){
+    if (!authHeader) {
         return next(ErrorFactory.missingToken());;
     }
 
@@ -26,13 +31,12 @@ export default function authMiddleware(
     const [_, token] = jwt_divide;
     const secret = process.env.JWT_SECRET || "default_secret";
 
-    try{ 
+    try {
         const decoded = jwt.verify(token, secret);
-        req.user = decoded;
+        req.user = jwtPayloadSchema.parse(decoded);
         next();
-    } 
-    catch
-    {
+    }
+    catch {
         return next(ErrorFactory.invalidToken());
     }
 

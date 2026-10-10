@@ -190,9 +190,20 @@ export const gameSchema = z.discriminatedUnion("mode", [
   }).strict()
 ]);
 
+export const gameParamsSchema = z.object({
+    gameId: z.string().min(1)
+});
+
+export const jwtPayloadSchema = z.object({
+    id: z.number(),
+    email: emailSchema,
+    role: z.string()
+});
+
 export type GameInput = z.infer<typeof gameSchema>;
 export type MailSchema = z.infer<typeof emailSchema>;
 export type PasswordSchema = z.infer<typeof pwSchema>;
 export type RoleSchema = z.infer<typeof role>;
 export type TypeSchema = z.infer<typeof type>;
 export type IdSchema = z.infer<typeof id>;
+export type GameParams = z.infer<typeof gameParamsSchema>;

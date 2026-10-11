@@ -31,9 +31,15 @@ export class AuthService {
             throw ErrorFactory.invalidCredentials();
         }
         
+        const secret = process.env.JWT_SECRET;
+
+        if (!secret) {
+            throw new Error("JWT_SECRET is not configured");
+        }
+        
         const token = jwt.sign(
             { id: existingUser.id, email: existingUser.email, role: existingUser.role },
-            process.env.JWT_SECRET || "default_secret",
+            secret,
             { expiresIn: '2h' }
         );
 

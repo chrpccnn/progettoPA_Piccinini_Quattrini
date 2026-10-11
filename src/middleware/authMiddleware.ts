@@ -27,9 +27,14 @@ export default function authMiddleware(
     if (jwt_divide.length !== 2 || jwt_divide[0] !== "Bearer") {
         return next(ErrorFactory.invalidToken());
     }
+    
+    const secret = process.env.JWT_SECRET;
 
+    if (!secret) {
+        throw new Error("JWT_SECRET is not configured");
+    }
+        
     const [_, token] = jwt_divide;
-    const secret = process.env.JWT_SECRET || "default_secret";
 
     try {
         const decoded = jwt.verify(token, secret);

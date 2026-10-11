@@ -34,17 +34,13 @@ export class GameService {
             body.grid.grid_height
         );
 
-        const gameId =
-            `game-${user.id}-${Date.now()}`;
-
-        const creatorFleet = new Fleet(
-            `fleet-${user.id}-${gameId}`
-        );
+        const gameId = "game-" + user.id + "-" + Date.now();
+        const creatorFleet = new Fleet("fleet-" + user.id + "-" + gameId);
 
         const creatorPlayer = new HumanPlayer(
-            `player-${user.id}-${gameId}`,
+            "player-" + user.id + "-" + gameId,
             creatorFleet,
-            body.energy,
+            body.energy.initial,
             0,
             [],
             user
@@ -53,15 +49,12 @@ export class GameService {
         let game: Game;
 
         if (body.mode === "ai") {
-
-            const aiFleet = new Fleet(
-                `fleet-ai-${gameId}`
-            );
+            const aiFleet = new Fleet("fleet-ai-" + gameId );
 
             const aiPlayer = new AIPlayer(
-                `player-ai-${gameId}`,
+                "player-ai-" + gameId,
                 aiFleet,
-                body.energy,
+                body.energy.initial,
                 0,
                 []
             );
@@ -74,14 +67,16 @@ export class GameService {
                     aiPlayer
                 ],
                 user,
-                0
+                0,
+                body.energy,
+                body.orientation
             );
         } 
         else 
         {
             const opponent =
                 await UserRepository.findByEmail(
-                    body.email
+                    body.opponentEmail
                 );
 
             if (!opponent) {
@@ -89,18 +84,18 @@ export class GameService {
             }
 
             if (opponent.id === user.id) {
-                throw ErrorFactory.badRequest();
+                throw ErrorFactory.badRequest("You cannot play against yourself");
             }
 
             const opponentFleet = new Fleet(
-                `fleet-${opponent.id}-${gameId}`
+                "fleet-" + opponent.id + "-" + gameId
             );
 
             const opponentPlayer =
                 new HumanPlayer(
-                    `player-${opponent.id}-${gameId}`,
+                    "player-" + opponent.id + "-" + gameId,
                     opponentFleet,
-                    body.energy,
+                    body.energy.initial,
                     0,
                     [],
                     opponent
@@ -114,7 +109,9 @@ export class GameService {
                     opponentPlayer
                 ],
                 user,
-                body.silence
+                body.silence,
+                body.energy,
+                body.orientation
             );
         }
 

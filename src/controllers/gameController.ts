@@ -1,7 +1,6 @@
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Response } from "express";
 import { AuthenticatedRequest } from "../middleware/authMiddleware";
 import { GameService } from "../services/gameService";
-import { ErrorFactory } from "../errors/ErrorFactory";
 import { GameParams } from "../Zod/zodSchemas";
 
 export async function createGame(

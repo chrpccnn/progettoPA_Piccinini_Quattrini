@@ -1,209 +1,208 @@
 import * as z from "zod";
+import {
+    DEFAULT_ENERGY_CONFIG
+} from "../models/Engine/EnergyConfig";
+
+import {
+    DEFAULT_FLEET_CONFIG,
+    MAX_SHIPS
+} from "../models/fleet/FleetConfig";
+
+import { ShipType } from "../models/fleet/ShipType";
+import { Orientation } from "../models/fleet/Orientation";
 
 export const emailSchema = z
     .string("email must be a string")
     .trim()
     .nonempty("email must be non-empty")
-    .regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
-    .transform(val=>val.toLowerCase());
+    .regex(
+        /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+        "invalid email"
+    )
+    .transform(val => val.toLowerCase());
 
 export const pwSchema = z
     .string()
-    .nonempty()
-    .min(5, "password must be longer than 5 character")
-    .max(128, "password must be shorter than 128 character")
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/);
+    .min(8, "password must be at least 8 characters")
+    .max(128, "password must be shorter than 128 characters")
+    .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+        "password must contain uppercase, lowercase, number and special character"
+    );
 
-export const modeSchema = z.enum(["ai", "user"]);
 export const role = z.enum(["admin", "user"]);
 export const type = z.enum(["admin", "player"]);
+export const modeSchema = z.enum(["ai", "user"]);
+
 export const id = z
     .number()
     .int()
     .positive();
 
-export const shipOrientation = z.object({
-    alongX: z
-    .boolean()
-    .default(true),
-
-    alongY: z
-    .boolean()
-    .default(true),
-
-    alongZ: z
-    .boolean()
-    .default(true),
-})
-
-export const gridValueSchema = z
-    // valore base per creare la griglia
-    .number()
-    .int()
-    .positive()
-    .min(5)
-    .max(20)
-
-export const shipSchema = z.object({
-    // numero di ogni tipologia di nave
-    motherShip: z
-    .number()
-    .int()
-    .min(1)
-    .max(3)
-    .default(1),
-
-    cruiser: z
-    .number()
-    .int()
-    .min(1)
-    .max(3)
-    .default(1),
-
-    scout: z
-    .number()
-    .int()
-    .min(1)
-    .max(3)
-    .default(2),
-
-    drone: z
-    .number()
-    .int()
-    .min(1)
-    .max(3)
-    .default(2),
-}).strict();
-
-export const energyCredits =  z
-    // numero di crediti energy iniziali
-    .number()
-    .int()
-    .min(1)
-    .max(6)
-    .default(3)
-
-export const TurnCredits = z
-    // numero di crediti ricaricati ad ogni turno
-    .number()
-    .int()
-    .min(1)
-    .max(5)
-    .default(2)
-
-export const silenceCredits = z
-    // numero di crediti silence
-    .number()
-    .int()
-    .min(1)
-    .max(5)
-    .default(5)
-
-export const measuresSchema = z.object({
-    // costo mosse
-    attack: z
-    .number()
-    .int()
-    .min(1)
-    .max(4)
-    .default(1),
-
-    scan: z
-    .number()
-    .int()
-    .min(1)
-    .max(4)
-    .default(2),
-
-    shield: z
-    .number()
-    .int()
-    .min(1)
-    .max(4)
-    .default(2), 
-
-    move: z
-    .number()
-    .int()
-    .min(1)
-    .max(4)
-    .default(2)
-}).strict();
-
-export const countermeasuresSchema = z.object({
-    // Costo contro mosse
-    cancelAttack: z
-    .number()
-    .int()
-    .min(1)
-    .max(4)
-    .default(3),
-
-    RadioSilence: z // da capire se lasciarli o meno
-    .number()
-    .int()
-    .min(1)
-    .max(4)
-    .default(3),
-
-    AlterScan: z
-    .number()
-    .int()
-    .min(1)
-    .max(4)
-    .default(3),
-}).strict();
-
-const gridSchema = z.object({
-    // schema per impostare le dimensioni della griglia
-    grid_base: gridValueSchema.default(10),
-    grid_height: gridValueSchema.default(5)
-}).strict();;
-
-export const actionsSchema = z.object({
-    measures: measuresSchema.prefault({}),
-    countermeasures: countermeasuresSchema.prefault({})
-}).strict();
-
-// parti dello schema in comune tra entrambe le modalità
-export const commonSchema = z.object({
-    grid: gridSchema.prefault({}),
-    orientation: shipOrientation.prefault({}),
-    ships: shipSchema.prefault({}),
-    energy: energyCredits,
-    turnCredits: TurnCredits,
-    actions: actionsSchema.prefault({}),
-})
-
-// schema specifico per modalità
-export const gameSchema = z.discriminatedUnion("mode", [
-  commonSchema.extend({
-    // Caso utente
-    mode: z.literal(modeSchema.enum.user),
+export const jwtPayloadSchema = z.object({
+    id: id,
     email: emailSchema,
-    silence: silenceCredits
-  }),
-
-  commonSchema.extend({
-    //Caso AI
-    mode: z.literal(modeSchema.enum.ai)
-  }).strict()
-]);
+    role: role
+});
 
 export const gameParamsSchema = z.object({
-    gameId: z.string().min(1)
-});
+    gameId: z
+        .string()
+        .trim()
+        .min(1, "gameId is required")
+}).strict();
 
-export const jwtPayloadSchema = z.object({
-    id: z.number(),
-    email: emailSchema,
-    role: z.string()
-});
+export const gridValueSchema = z
+    .number()
+    .int()
+    .min(5)
+    .max(20);
+
+export const gridSchema = z.object({
+    // X e Y
+    grid_base: gridValueSchema
+        .default(10),
+
+    // Z
+    grid_height: gridValueSchema
+        .default(5)
+
+}).strict();
+
+export const shipSchema = z.object({
+
+    motherShip: z
+        .number()
+        .int()
+        .min(1)
+        .max(MAX_SHIPS[ShipType.MOTHER_SHIP])
+        .default(
+            DEFAULT_FLEET_CONFIG[ShipType.MOTHER_SHIP]),
+
+    cruiser: z
+        .number()
+        .int()
+        .min(1)
+        .max(MAX_SHIPS[ShipType.CRUISER])
+        .default(
+            DEFAULT_FLEET_CONFIG[ShipType.CRUISER]),
+
+    scout: z
+        .number()
+        .int()
+        .min(1)
+        .max(MAX_SHIPS[ShipType.SCOUT])
+        .default(
+            DEFAULT_FLEET_CONFIG[ShipType.SCOUT]),
+
+    drone: z
+        .number()
+        .int()
+        .min(1)
+        .max(MAX_SHIPS[ShipType.DRONE])
+        .default(
+            DEFAULT_FLEET_CONFIG[ShipType.DRONE])
+
+}).strict();
+
+export const orientationSchema = z
+    .array(
+        z.enum(Orientation)
+    )
+    .min(
+        1,
+        "at least one orientation must be allowed"
+    )
+    .default([
+        Orientation.HORIZONTAL,
+        Orientation.VERTICAL,
+        Orientation.DEPTH
+    ]);
+
+export const energySchema = z.object({
+
+    initial: z
+        .number()
+        .int()
+        .min(0)
+        .default(
+            DEFAULT_ENERGY_CONFIG.initial
+        ),
+
+    max: z
+        .number()
+        .int()
+        .min(1)
+        .default(
+            DEFAULT_ENERGY_CONFIG.max
+        ),
+
+    regeneration: z
+        .number()
+        .int()
+        .min(0)
+        .default(
+            DEFAULT_ENERGY_CONFIG.regeneration
+        )
+
+})
+.strict()
+.refine(
+    energy => energy.initial <= energy.max,
+    {
+        message:
+            "initial energy cannot exceed max energy",
+        path: ["initial"]
+    }
+);
+
+export const silenceSchema = z
+    .number()
+    .int()
+    .min(0)
+    .max(5)
+    .default(3);
+
+export const commonGameSchema = z.object({
+
+    grid: gridSchema.prefault({}),
+
+    ships: shipSchema.prefault({}),
+
+    orientation: orientationSchema,
+
+    energy: energySchema.prefault({})
+
+}).strict();
+
+export const gameSchema = z.discriminatedUnion(
+    "mode", [commonGameSchema.extend({
+            // mode user
+            mode: z.literal(modeSchema.enum.user),
+            opponentEmail: emailSchema,
+            silence: silenceSchema
+        }).strict(),
+
+        commonGameSchema.extend({
+            // mode ai
+            mode: z.literal(modeSchema.enum.ai)
+        }).strict()
+    ]
+);
+
 
 export type GameInput = z.infer<typeof gameSchema>;
-export type MailSchema = z.infer<typeof emailSchema>;
-export type PasswordSchema = z.infer<typeof pwSchema>;
-export type RoleSchema = z.infer<typeof role>;
-export type TypeSchema = z.infer<typeof type>;
-export type IdSchema = z.infer<typeof id>;
+
 export type GameParams = z.infer<typeof gameParamsSchema>;
+
+export type JwtPayload = z.infer<typeof jwtPayloadSchema>;
+
+export type MailSchema = z.infer<typeof emailSchema>;
+
+export type PasswordSchema = z.infer<typeof pwSchema>;
+
+export type RoleSchema = z.infer<typeof role>;
+
+export type TypeSchema = z.infer<typeof type>;
+
+export type IdSchema = z.infer<typeof id>;

@@ -44,8 +44,7 @@ Il progetto segue una struttura a livelli e utilizza principi di progettazione o
 * **Docker / Docker Compose** — containerizzazione dell'applicazione e del database
 * **Jest** — testing
 * **Supertest** — test delle API HTTP
-* **express-validator** — validazione dei dati ricevuti dalle API
-* **Zod** — validazione e normalizzazione della configurazione delle partite
+* **Zod** — validazione e tipizzazione degli input delle API, con applicazione dei valori di default
 * **dotenv** — gestione delle variabili d'ambiente
 * **bcrypt** — hashing delle password
 * **jsonwebtoken** — autenticazione tramite JWT
@@ -54,117 +53,33 @@ Il progetto segue una struttura a livelli e utilizza principi di progettazione o
 
 # 3. Struttura del progetto
 
-La struttura del progetto è organizzata separando infrastruttura, dominio, logica applicativa e gestione delle API.
+La struttura del progetto separa API REST, logica applicativa, persistenza e dominio di gioco.
 
 ```text
-progettopa_piccinini_quattrini/
-
-│
+progettoPA_Piccinini_Quattrini/
 ├── src/
-│   │
-│   ├── Action/
-│   │   ├── IAction.ts
-│   │   ├── ActionContext.ts
-│   │   ├── BasicMove.ts
-│   │   ├── Countermeasure.ts
-│   │   ├── AttackResult.ts
-│   │   │
-│   │   ├── BasicMoves/
-│   │   │   ├── Attack.ts
-│   │   │   ├── Scan.ts
-│   │   │   ├── Shield.ts
-│   │   │   └── Move.ts
-│   │   │
-│   │   └── Countermeasures/
-│   │       ├── CancelAttack.ts
-│   │       ├── ReduceAttack.ts
-│   │       ├── AlterScan.ts
-│   │       └── RadioSilence.ts
-│   │
-│   ├── Engine/
-│   │   └── GameEngine.ts
-│   │
-│   ├── game/
-│   │   ├── Game.ts
-│   │   └── GameState.ts
-│   │
-│   ├── grid/
-│   │   ├── Coordinates.ts
-│   │   ├── Cell.ts
-│   │   ├── Grid.ts
-│   │   ├── MapGrid.ts
-│   │   └── GridFactory.ts
-│   │
-│   ├── fleet/
-│   │   ├── Ship.ts
-│   │   ├── ShipType.ts
-│   │   ├── ShipStatus.ts
-│   │   ├── Orientation.ts
-│   │   └── Fleet.ts
-│   │
-│   ├── Players/
-│   │   ├── IPlayer.ts
-│   │   ├── PlayerType.ts
-│   │   ├── HumanPlayer.ts
-│   │   └── AIPlayer.ts
-│   │
-│   ├── config/
-│   │   └── database.ts
-│   │
-│   ├── controllers/
-│   │   ├── indexController.ts
-│   │   ├── authController.ts
-│   │   └── gameController.ts
-│   │
-│   ├── errors/
-│   │   ├── appError.ts
-│   │   └── ErrorFactory.ts
-│   │
-│   ├── middleware/
-│   │   ├── authMiddleware.ts
-│   │   ├── roleMiddleware.ts
-│   │   ├── gameValidatorMiddleware.ts
-│   │   ├── logger.ts
-│   │   ├── validation.ts
-│   │   └── errorHandler.ts
-│   │
+│   ├── cli/                  # CLI testuale per provare il dominio
+│   ├── config/               # configurazione database
+│   ├── controllers/          # gestione richieste HTTP
+│   ├── errors/               # AppError ed ErrorFactory
+│   ├── middleware/           # auth, ruolo, Zod, logger, error handler
 │   ├── models/
-│   │   └── User.ts
-│   │
-│   ├── repository/
-│   │   └── authRepository.ts
-│   │
-│   ├── routes/
-│   │   ├── authRoutes.ts
-│   │   ├── gameRoutes.ts
-│   │   └── index.ts
-│   │
-│   ├── Zod/
-│   │   └── zodSchemas.ts
-│   │
-│   ├── services/
-│   │   ├── authService.ts
-│   │   └── indexService.ts
-│   │
-│   ├── types/
-│   │   └── api.ts
-│   │
+│   │   ├── Action/           # action e countermeasure
+│   │   ├── Engine/           # Game, GameEngine, EnergyConfig, HistoryCsv
+│   │   ├── Players/          # HumanPlayer e AIPlayer
+│   │   ├── fleet/            # Fleet, Ship, FleetConfig, FleetFactory
+│   │   └── grid/             # griglia, celle e coordinate
+│   ├── repository/           # authRepository e gameRepository
+│   ├── routes/               # route base, auth e game
+│   ├── services/             # authService, gameService, indexService
+│   ├── Zod/                  # schema e tipi derivati dagli input API
+│   ├── TokenCost.ts
 │   ├── app.ts
 │   └── server.ts
-│
 ├── tests/
-│   └── ...
-│
-├── dist/
-│   └── ...
-│
-├── .env
-├── .gitignore
 ├── Dockerfile
-├── docker-compose.yml
-├── jest.config.js
+├── docker-compose.yaml
 ├── package.json
-├── package-lock.json
 └── README.md
 ```
 
@@ -724,21 +639,17 @@ Questa responsabilità viene delegata alle singole action.
 
 # 17. Sistema Energy
 
-Ogni giocatore dispone di Energy.
+Ogni giocatore dispone di Energy. La configurazione è gestita tramite `EnergyConfig`.
 
-Il valore predefinito è:
+I valori predefiniti sono:
 
 ```text
 3 Energy iniziali
+6 Energy massimi
++2 Energy rigenerati a turno
 ```
 
-A ogni turno successivo vengono aggiunte:
-
-```text
-+2 Energy
-```
-
-Il numero iniziale e il recupero potranno essere configurabili.
+I valori possono essere configurati in fase di creazione della partita e vengono validati tramite Zod.
 
 I costi delle action sono:
 
@@ -798,9 +709,11 @@ USER vs AI
 
 Un utente può partecipare a una sola partita alla volta.
 
+La creazione REST è esposta tramite `POST /game`. Il body viene validato e normalizzato con Zod; in assenza di valori espliciti vengono applicati i default previsti per griglia, flotta, orientamenti ed Energy. Alla creazione vengono addebitati `0,30 TOKEN` al creatore e viene creato e avviato l'oggetto di dominio `Game`. La persistenza completa della partita nel database è il prossimo passaggio da implementare.
+
 ## Partita contro un altro utente
 
-Il creatore deve indicare l'email dell'avversario.
+Il creatore deve indicare l'email dell'avversario tramite il campo `opponentEmail`.
 
 Le email dei due giocatori devono essere diverse.
 
@@ -904,7 +817,7 @@ Il ruolo assegnato agli utenti registrati tramite API è quello previsto dal sis
 
 Il login verifica le credenziali e restituisce un JWT.
 
-Il JWT viene utilizzato dal middleware di autenticazione per identificare l'utente.
+Il JWT viene utilizzato dal middleware di autenticazione per identificare l'utente. Il payload viene validato tramite Zod e la chiave JWT viene letta dalle variabili d'ambiente senza fallback hard-coded.
 
 Il sistema prevede inoltre la distinzione tra:
 
@@ -1106,10 +1019,9 @@ Sono presenti:
 
 ```text
 logger.ts
-validation.ts
 authMiddleware.ts
 roleMiddleware.ts
-gameValidatorMiddleware.ts
+gameValuesMiddleware.ts
 errorHandler.ts
 ```
 
@@ -1119,9 +1031,7 @@ Registra le richieste ricevute dal server.
 
 ## Validation
 
-Gestisce la validazione dei dati ricevuti tramite `express-validator`.
-
-Per la configurazione della partita viene inoltre utilizzato `gameValidatorMiddleware`, che valida il body tramite gli schema Zod definiti in `src/Zod/zodSchemas.ts` e applica i valori di default previsti.
+La validazione degli input viene gestita tramite Zod. `gameValuesMiddleware` valida il body di creazione della partita e assegna a `req.body` il risultato del parsing, mantenendo quindi default e trasformazioni definiti negli schema.
 
 ## AuthMiddleware
 
@@ -1217,8 +1127,10 @@ Le principali operazioni attualmente disponibili includono:
 ```text
 POST /auth/register
 POST /auth/login
-POST /creategame
+POST /game
 ```
+
+Sono inoltre predisposte le route per stato partita, azioni, contromosse, PASS e storico CSV; saranno collegate alla persistenza del database tramite `gameRepository`.
 
 I test tramite Postman permettono di verificare:
 
@@ -1230,7 +1142,7 @@ I test tramite Postman permettono di verificare:
 * validazione della configurazione di una partita;
 * gestione degli errori HTTP.
 
-La route `POST /creategame` è attualmente protetta tramite JWT e controllo del ruolo e valida il body tramite Zod. La creazione e persistenza effettiva della partita devono ancora essere completate.
+La route `POST /game` è protetta tramite JWT e controllo del ruolo, valida il body tramite Zod, crea l'oggetto di dominio, addebita il costo di creazione e avvia la partita. La persistenza completa della partita e delle flotte nel database deve ancora essere collegata.
 
 ---
 
@@ -1285,6 +1197,7 @@ MSQLDB
 MSQLROOTPSW
 DB_HOST
 DB_PORT
+JWT_SECRET
 ```
 
 Il file `.env` non deve essere inserito nel repository.
@@ -1317,6 +1230,12 @@ npm start
 
 ```bash
 npm test
+```
+
+## Avvio della CLI di gioco
+
+```bash
+npx ts-node src/cli/play.ts
 ```
 
 ## Avvio tramite Docker Compose
@@ -1547,97 +1466,42 @@ Il resto del dominio può lavorare con `Grid` senza dipendere direttamente dall'
 
 Attualmente sono presenti e funzionanti:
 
-* server Express;
-* separazione `app.ts` / `server.ts`;
-* connessione Sequelize a MySQL;
-* database MySQL tramite Docker;
-* Docker Compose;
-* middleware di logging;
-* middleware di validazione;
-* middleware di autenticazione;
-* middleware di autorizzazione per il ruolo utente;
-* validazione Zod della configurazione di gioco;
-* route protetta `POST /creategame`;
-* gestione centralizzata degli errori;
-* route REST;
-* Service;
-* Controller;
-* Repository;
-* Model `User`;
-* autenticazione JWT;
-* test con Jest e Supertest;
-* compilazione TypeScript;
-* struttura del dominio di gioco;
-* `Coordinates`;
-* `Grid`;
-* `MapGrid`;
-* `GridFactory`;
-* `Cell` e `CellState`;
-* `Ship`;
-* `Fleet`;
-* `HumanPlayer`;
-* `AIPlayer`;
-* `Game`;
-* `GameState`;
-* `GameEngine`;
-* struttura Command per le action;
-* `Attack`;
-* `Scan`;
-* `Shield`;
-* `Move`.
+* server Express, Docker Compose e connessione Sequelize/MySQL;
+* registrazione e login con JWT;
+* middleware di autenticazione, autorizzazione, logging, validazione Zod e gestione centralizzata degli errori;
+* `ErrorFactory` / `AppError` per gli errori applicativi e risposta JSON `404` per route inesistenti;
+* struttura REST a livelli `Route → Controller → Service → Repository`;
+* route protetta `POST /game` per la creazione di partite `user` o `ai`;
+* addebito di `0,30 TOKEN` alla creazione della partita e persistenza del credito residuo dell'utente;
+* configurazione Zod di griglia, flotta, orientamenti, Energy e `silence`, con valori di default coerenti con il dominio;
+* dominio di gioco con `Game`, `GameEngine`, action, countermeasure, Energy, TOKEN e gestione dei turni;
+* `FleetFactory` / `FleetConfig` per la generazione casuale delle flotte;
+* storico delle mosse tramite `MoveRecord` e conversione CSV tramite `HistoryCsv`;
+* CLI testuale (`src/cli/play.ts`) per provare il dominio di gioco;
+* test con Jest e Supertest e compilazione TypeScript.
 
-Sono ancora da completare:
-
-* gestione completa dei TOKEN;
-* gestione completa del ciclo delle contromosse;
-* `PASS`;
-* comportamento definitivo delle contromosse;
-* `silence credits`;
-* posizionamento automatico dell'IA;
-* creazione completa della partita;
-* API REST per la gestione delle partite;
-* test completi delle funzionalità di gioco;
-* diagrammi UML definitivi;
-* test Postman delle API di gioco.
+Sono predisposte a livello REST le route per stato partita, azioni, contromosse, PASS e storico CSV. Il prossimo blocco di lavoro riguarda la progettazione e implementazione della persistenza delle partite nel database, includendo partecipanti, configurazione, flotte, posizioni e storico.
 
 ---
 
 # 39. Sviluppo futuro
 
-Le funzionalità mancanti verranno implementate progressivamente seguendo la specifica del progetto.
-
-Ordine previsto:
+Il prossimo passo è completare la persistenza delle partite. L'ordine previsto è:
 
 ```text
-1. Completamento dominio di gioco
+1. Progettazione schema database delle partite
           ↓
-2. Gestione TOKEN
+2. Model Sequelize e relazioni
           ↓
-3. Gestione Energy e turni
+3. Persistenza di partita, partecipanti, flotte e posizioni
           ↓
-4. Gestione contromosse
+4. Collegamento di gameRepository alle route già predisposte
           ↓
-5. PASS e finestre di risposta
+5. Persistenza e restituzione dello storico CSV
           ↓
-6. Posizionamento IA
+6. Completamento test REST / Postman
           ↓
-7. Creazione e gestione partite
-          ↓
-8. Repository / Service
-          ↓
-9. Controller
-          ↓
-10. Route
-          ↓
-11. Test
-          ↓
-12. Postman
-          ↓
-13. Diagrammi UML
-          ↓
-14. Docker e verifica finale
-          ↓
-15. Documentazione finale
+7. Diagrammi UML e documentazione finale
 ```
 
-La struttura del progetto verrà modificata solamente quando i requisiti della specifica lo richiederanno.
+La logica di dominio rimane separata dalla parte REST e dalla persistenza, così da mantenere chiare le responsabilità dei diversi livelli.

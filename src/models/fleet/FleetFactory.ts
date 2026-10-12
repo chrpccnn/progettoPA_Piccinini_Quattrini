@@ -72,7 +72,7 @@ export class FleetFactory {
         for (const type of types) {
             for (let n = 1; n <= config[type]; n++) {
 
-                const placed = FleetFactory.place(
+                const placed = FleetFactory.placeRandom(
                     `${fleetId}-${type}-${n}`,
                     type,
                     grid,
@@ -88,7 +88,55 @@ export class FleetFactory {
         return fleet;
     }
 
-    private static place(
+    /*
+     * Crea una nave con la cella di partenza e l'orientamento scelti
+     * (posizionamento manuale). Non modifica occupied: lo aggiorna
+     * chi chiama, dopo aver aggiunto la nave alla flotta.
+     */
+    public static shipAt(
+        id: string,
+        type: ShipType,
+        start: Coordinates,
+        orientation: Orientation,
+        grid: Grid,
+        occupied: Set<Coordinates>
+    ): Ship {
+
+        const size = SHIP_SIZES[type];
+        const [dx, dy, dz] = DIRECTIONS[orientation];
+
+        const positions: Coordinates[] = [];
+
+        for (let i = 0; i < size; i++) {
+
+            const position = Coordinates.create(
+                start.x + i * dx,
+                start.y + i * dy,
+                start.z + i * dz
+            );
+
+            if (!grid.isValid(position)) {
+                throw new Error(
+                    "La nave uscirebbe dalla griglia."
+                );
+            }
+
+            if (occupied.has(position)) {
+                throw new Error(
+                    "La nave si sovrapporrebbe a un'altra nave."
+                );
+            }
+
+            positions.push(position);
+        }
+
+        return new Ship(id, type, size, orientation, positions);
+    }
+
+    /*
+     * Piazza una nave in modo casuale e aggiunge le sue celle a occupied.
+     */
+    public static placeRandom(
         id: string,
         type: ShipType,
         grid: Grid,

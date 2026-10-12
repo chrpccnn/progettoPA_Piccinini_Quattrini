@@ -28,11 +28,13 @@ import {
     SHIP_SIZES
 } from "../models/fleet/FleetConfig";
 import { FleetFactory } from "../models/fleet/FleetFactory";
+import { validateFleetConfig } from "../models/fleet/FleetConfig";
 import { Orientation } from "../models/fleet/Orientation";
 import { Ship } from "../models/fleet/Ship";
 import { ShipType } from "../models/fleet/ShipType";
 import { Coordinates } from "../models/grid/Coordinates";
 import { GridFactory } from "../models/grid/GridFactory";
+import { Grid } from "../models/grid/Igrid";
 import { AIPlayer } from "../models/Players/AIPlayer";
 import { HumanPlayer } from "../models/Players/HumanPlayer";
 import { IPlayer } from "../models/Players/IPlayer";
@@ -50,7 +52,12 @@ import {
     renderLayers
 } from "./render";
 
+/*
+ * Valori fissi della CLI: i token iniziali simulano il valore del seed
+ * del database, gli Energy Credits usano i default della specifica.
+ */
 const INITIAL_TOKENS = 10;
+const ENERGY: EnergyConfig = { ...DEFAULT_ENERGY_CONFIG };
 
 interface Session {
     game: Game;
@@ -147,6 +154,145 @@ async function askOrientations(prompt: Prompt): Promise<Orientation[]> {
     }
 }
 
+/*
+ * Posizionamento della flotta di un giocatore umano.
+ * Per ogni nave si sceglie cella di partenza e orientamento,
+ * oppure la si piazza a caso (anche tutte le rimanenti).
+ */
+async function placeFleet(
+    prompt: Prompt,
+    pvp: boolean,
+    debug: boolean,
+    fleetId: string,
+    who: string,
+    config: FleetConfig,
+    grid: Grid,
+    orientations: Orientation[]
+): Promise<Fleet> {
+
+    if (pvp && !debug) {
+        await prompt.ask(
+            `\nPassa il terminale a ${who} e premi invio...`
+        );
+        console.log("\n".repeat(40));
+    }
+
+    console.log(`\n--- Posizionamento della flotta di ${who} ---`);
+
+    const mode = await prompt.choice(
+        "Come vuoi posizionare le navi?",
+        [
+            { label: "Manualmente", value: "manual" },
+            { label: "Casualmente", value: "random" }
+        ]
+    );
+
+    if (mode === "random") {
+        return FleetFactory.create(fleetId, config, grid, orientations);
+    }
+
+    const fleet = new Fleet(fleetId);
+    const occupied = new Set<Coordinates>();
+    const owner = { getFleet: () => fleet } as unknown as IPlayer;
+
+    const types = Object.values(ShipType).sort(
+        (a, b) => SHIP_SIZES[b] - SHIP_SIZES[a]
+    );
+
+    let allRandom = false;
+
+    const labels: Record<Orientation, string> = {
+        [Orientation.HORIZONTAL]: "H (lungo l'asse x)",
+        [Orientation.VERTICAL]: "V (lungo l'asse y)",
+        [Orientation.DEPTH]: "D (lungo l'asse z)"
+    };
+
+    for (const type of types) {
+        for (let n = 1; n <= config[type]; n++) {
+
+            const id = `${fleetId}-${type}-${n}`;
+
+            const addRandom = (): void => {
+                const ship = FleetFactory.placeRandom(
+                    id, type, grid, orientations, occupied, Math.random
+                );
+                fleet.addShip(ship);
+            };
+
+            if (allRandom) {
+                addRandom();
+                continue;
+            }
+
+            console.log("\nFlotta posizionata finora (lettera = nave)");
+            console.log(renderLayers(grid, fleetCell(owner)));
+
+            while (true) {
+
+                const how = await prompt.choice(
+                    `${type} ${n}/${config[type]} ` +
+                    `(lunghezza ${SHIP_SIZES[type]})`,
+                    [
+                        { label: "Scelgo io la posizione", value: "manual" },
+                        { label: "Posiziona a caso questa nave", value: "one" },
+                        { label: "Posiziona a caso tutte le rimanenti", value: "all" }
+                    ]
+                );
+
+                try {
+
+                    if (how === "all") {
+                        allRandom = true;
+                        addRandom();
+                        break;
+                    }
+
+                    if (how === "one") {
+                        addRandom();
+                        break;
+                    }
+
+                    const start = await prompt.coordinates(
+                        "Cella di partenza", grid
+                    );
+
+                    const orientation =
+                        SHIP_SIZES[type] === 1 || orientations.length === 1
+                            ? orientations[0]
+                            : await prompt.choice(
+                                "Orientamento",
+                                orientations.map(o => ({
+                                    label: labels[o],
+                                    value: o
+                                }))
+                            );
+
+                    const ship = FleetFactory.shipAt(
+                        id, type, start, orientation, grid, occupied
+                    );
+
+                    ship.getPositions().forEach(p => occupied.add(p));
+                    fleet.addShip(ship);
+                    break;
+
+                } catch (error) {
+                    console.log(`\nPosizione non valida: ${errorMessage(error)}`);
+                }
+            }
+        }
+    }
+
+    console.log("\nLa tua flotta");
+    console.log(renderLayers(grid, fleetCell(owner)));
+
+    if (pvp && !debug) {
+        await prompt.ask("Premi invio per nascondere la schermata...");
+        console.log("\n".repeat(40));
+    }
+
+    return fleet;
+}
+
 async function setup(prompt: Prompt): Promise<Session> {
 
     console.log("=== SPACE BATTLESHIP 3D (CLI) ===");
@@ -164,9 +310,10 @@ async function setup(prompt: Prompt): Promise<Session> {
         true
     );
 
-    let grid;
-    let fleets: Fleet[] = [];
+    let grid!: Grid;
+    let config = {} as FleetConfig;
     let orientations: Orientation[];
+    let aiFleet: Fleet | undefined;
 
     while (true) {
 
@@ -176,7 +323,7 @@ async function setup(prompt: Prompt): Promise<Session> {
         const depth = await prompt.int("Profondità", 3, 20, 5);
 
         console.log("\n--- Flotta (uguale per i due giocatori) ---");
-        const config = {} as FleetConfig;
+        config = {} as FleetConfig;
 
         for (const type of Object.values(ShipType)) {
             config[type] = await prompt.int(
@@ -191,11 +338,17 @@ async function setup(prompt: Prompt): Promise<Session> {
         orientations = await askOrientations(prompt);
 
         try {
+            validateFleetConfig(config);
             grid = GridFactory.create(width, height, depth);
-            fleets = [
-                FleetFactory.create("fleet-1", config, grid, orientations),
-                FleetFactory.create("fleet-2", config, grid, orientations)
-            ];
+
+            /*
+             * Prova di piazzamento casuale: serve a scartare
+             * configurazioni che non entrano nella griglia.
+             * Nelle partite contro l'IA è anche la flotta dell'IA.
+             */
+            aiFleet = FleetFactory.create(
+                "fleet-2", config, grid, orientations
+            );
             break;
         } catch (error) {
             console.log(`\nConfigurazione non valida: ${errorMessage(error)}`);
@@ -203,46 +356,41 @@ async function setup(prompt: Prompt): Promise<Session> {
         }
     }
 
-    console.log("\n--- Energy Credits ---");
-    const initial = await prompt.int(
-        "Crediti iniziali", 0, 20, DEFAULT_ENERGY_CONFIG.initial
-    );
-    const max = await prompt.int(
-        "Crediti massimi accumulabili", Math.max(initial, 1), 20,
-        Math.max(initial, DEFAULT_ENERGY_CONFIG.max)
-    );
-    const regeneration = await prompt.int(
-        "Crediti rigenerati a ogni turno", 0, 10,
-        DEFAULT_ENERGY_CONFIG.regeneration
-    );
-    const energy: EnergyConfig = { initial, max, regeneration };
-
     const silence = pvp
         ? await prompt.int("Parametro silence", 0, 5, 3)
         : 0;
 
     const user1 = makeUser("giocatore1@cli.local");
 
+    const fleet1 = await placeFleet(
+        prompt, pvp, debug, "fleet-1", user1.email,
+        config, grid, orientations
+    );
+
     const player1 = new HumanPlayer(
-        "p1", fleets[0], energy.initial, 0, [user1.email], user1
+        "p1", fleet1, ENERGY.initial, 0, [user1.email], user1
     );
 
     let player2: IPlayer;
 
     if (pvp) {
         const user2 = makeUser("giocatore2@cli.local");
+        const fleet2 = await placeFleet(
+            prompt, pvp, debug, "fleet-2", user2.email,
+            config, grid, orientations
+        );
         player2 = new HumanPlayer(
-            "p2", fleets[1], energy.initial, 0, [user2.email], user2
+            "p2", fleet2, ENERGY.initial, 0, [user2.email], user2
         );
     } else {
         player2 = new AIPlayer(
-            "ai", fleets[1], energy.initial, 0, []
+            "ai", aiFleet!, ENERGY.initial, 0, []
         );
     }
 
     const game = new Game(
         "cli-game", grid, [player1, player2], user1, silence,
-        energy, orientations
+        ENERGY, orientations
     );
 
     game.payCreationCost();

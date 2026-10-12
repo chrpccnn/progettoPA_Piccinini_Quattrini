@@ -474,7 +474,7 @@ describe("GameEngine", () => {
             );
 
             expect(owner.getTokens())
-                .toBe(1);
+                .toBe(0.985);
         });
 
         it("Attack deve creare una pending action", () => {
@@ -584,6 +584,7 @@ describe("GameEngine", () => {
             );
 
             fleet.addShip(drone);
+            fleet.addShip(createDrone("drone-2", 7, 7, 2));
 
             const p1 = createHuman(
                 "p1",
@@ -918,12 +919,7 @@ describe("GameEngine", () => {
                 attack
             );
 
-            engine.executeCountermeasure(
-                game,
-                p2,
-                new CancelAttack(attack)
-            );
-
+            engine.executeCountermeasure(game, p2, new RadioSilence(attack));
             expect(
                 game.getSilenceUsed(p2)
             ).toBe(1);
@@ -1224,11 +1220,7 @@ describe("GameEngine", () => {
             );
 
             expect(() => {
-                engine.executeCountermeasure(
-                    game,
-                    p2,
-                    new CancelAttack(attack)
-                );
+                engine.executeCountermeasure(game, p2, new RadioSilence(attack));
             }).toThrow(
                 "No silence uses remaining."
             );

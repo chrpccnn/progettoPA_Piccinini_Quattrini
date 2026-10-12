@@ -1,3 +1,4 @@
+import { CellState } from "../../grid/Cell";
 import { Coordinates } from "../../grid/Coordinates";
 import { ActionContext } from "../ActionContext";
 import { BasicMove } from "../BasicMove";
@@ -24,60 +25,59 @@ export class Scan extends BasicMove {
         return this.occupiedCells;
     }
 
-    public execute(
-        context: ActionContext
-    ): void {
+public execute(
+    context: ActionContext
+): void {
+    const grid = context.game.getGrid();
 
-        const grid = context.game.getGrid();
-
-        if (!grid.isValid(this.center)) {
-            throw new Error(
-                "Scan center is outside the grid."
-            );
-        }
-
-        /*
-         * Il centro deve essere almeno una cella
-         * distante da ogni bordo per poter creare
-         * un cubo completo 3x3x3.
-         */
-        if (
-            this.center.x <= 0 ||
-            this.center.x >= grid.getWidth() - 1 ||
-            this.center.y <= 0 ||
-            this.center.y >= grid.getHeight() - 1 ||
-            this.center.z <= 0 ||
-            this.center.z >= grid.getDepth() - 1
-        ) {
-            throw new Error(
-                "Scan center must be at least one cell away from every grid edge."
-            );
-        }
-
-        /*
-         * La griglia non tiene traccia delle navi, quindi si contano
-         * le posizioni della flotta avversaria dentro il cubo 3x3x3.
-         */
-        const opponent = context.game
-            .getPlayers()
-            .find(player => player !== context.player);
-
-        if (opponent === undefined) {
-            throw new Error("Opponent not found.");
-        }
-
-        const occupiedCells = opponent
-            .getFleet()
-            .getShips()
-            .flatMap(ship => ship.getPositions())
-            .filter(position =>
-                Math.abs(position.x - this.center.x) <= 1 &&
-                Math.abs(position.y - this.center.y) <= 1 &&
-                Math.abs(position.z - this.center.z) <= 1
-            ).length;
-
-        this.occupiedCells = occupiedCells;
+    if (!grid.isValid(this.center)) {
+        throw new Error(
+            "Scan center is outside the grid."
+        );
     }
+
+    if (
+        this.center.x <= 0 ||
+        this.center.x >= grid.getWidth() - 1 ||
+        this.center.y <= 0 ||
+        this.center.y >= grid.getHeight() - 1 ||
+        this.center.z <= 0 ||
+        this.center.z >= grid.getDepth() - 1
+    ) {
+        throw new Error(
+            "Scan center must be at least one cell away from every grid edge."
+        );
+    }
+
+    let occupiedCells = 0;
+
+    for (let x = this.center.x - 1;
+         x <= this.center.x + 1;
+         x++) {
+        for (let y = this.center.y - 1;
+             y <= this.center.y + 1;
+             y++) {
+            for (let z = this.center.z - 1;
+                 z <= this.center.z + 1;
+                 z++) {
+
+                const state = grid.getCellState(
+                    Coordinates.create(x, y, z)
+                );
+
+                if (
+                    state === CellState.OCCUPIED ||
+                    state === CellState.HIT
+                ) {
+                    occupiedCells++;
+                }
+            }
+        }
+    }
+
+    this.occupiedCells = occupiedCells;
+}
+
     public setOccupiedCells(
     occupiedCells: number
 ): void {

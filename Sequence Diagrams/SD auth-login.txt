@@ -1,22 +1,28 @@
-title Sequence diagram /auth/register
+title Sequence diagram - POST /auth/login
 
-client->authRoutes:POST /auth/login
-authRoutes->authController:login(req, res)
-authController->authService:login(email, password)
+client->authRoutes: POST /auth/login
+authRoutes->authController: login(req, res, next)
+authController->authService: login(email, password)
+
 authService->authRepository: findByEmail(email)
-authRepository->MySQL: SELECT * FROM users WHERE email = ?
+authRepository->MySQL: SELECT user WHERE email = ?
 MySQL-->authRepository: User | null
 authRepository-->authService: User | null
-alt existingUser != null
-authService->authService: jwt.sign(...)
-authService->authController: 200, ok
-authController-->client: authenticated
 
-else existingUser == null
-authService-->errorHandler: 401 - Invalid credentials
+alt user not found
+    authService-->authController: throw InvalidCredentials
+    authController->errorHandler: next(err)
+    errorHandler-->client: 401 Unauthorized
+else user found
+    authService->authService: bcrypt.compare(password, hash)
 
-else isValidPassword == False
-authService-->errorHandler: 401 - Invalid credentials
+    alt password invalid
+        authService-->authController: throw InvalidCredentials
+        authController->errorHandler: next(err)
+        errorHandler-->client: 401 Unauthorized
+    else password valid
+        authService->authService: jwt.sign(...)
+        authService-->authController: token
+        authController-->client: 200 OK + JWT
+    end
 end
-
-

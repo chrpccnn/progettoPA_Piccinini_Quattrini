@@ -1,21 +1,24 @@
-title Sequence diagram /auth/register
+title Sequence diagram - POST /auth/register
 
-client->authRoutes:POST /auth/register
-authRoutes->authController:register(req, res)
-authController->authService:register(email, password)
+client->authRoutes: POST /auth/register
+authRoutes->authController: register(req, res, next)
+authController->authService: register(email, password)
+
 authService->authRepository: findByEmail(email)
-authRepository->MySQL: SELECT * FROM users WHERE email = ?
+authRepository->MySQL: SELECT user WHERE email = ?
 MySQL-->authRepository: User | null
 authRepository-->authService: User | null
-alt existingUser == null
-authService->authService: bcrypt.hash(password)
-authService->authRepository: createNewUser(email, encrypted_ps)
-authRepository->MySQL: INSERT INTO users...
-MySQL-->authRepository: NewUser
-authRepository-->authService: NewUser
-authService-->authController: NewUser
-authController-->client: 201 Created
 
-else existingUser != null
-authService-->errorHandler: 409, confilct, user already exist
+alt user already exists
+    authService-->authController: throw UserAlreadyExists
+    authController->errorHandler: next(err)
+    errorHandler-->client: 409 Conflict
+else user not found
+    authService->authService: bcrypt.hash(password)
+    authService->authRepository: createNewUser(email, encryptedPassword)
+    authRepository->MySQL: INSERT INTO users...
+    MySQL-->authRepository: NewUser
+    authRepository-->authService: NewUser
+    authService-->authController: NewUser
+    authController-->client: 201 Created
 end

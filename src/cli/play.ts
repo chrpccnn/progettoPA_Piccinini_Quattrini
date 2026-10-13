@@ -817,29 +817,33 @@ async function humanResponse(
     }
 }
 
-function announce(
+async function announce(
     s: Session,
     attacker: IPlayer,
     pending: object,
     result: AttackResult | undefined,
     silence: boolean,
     altered: boolean
-): void {
+): Promise<void> {
 
-    if (pending instanceof Scan) {
+   
+if (pending instanceof Scan) {
+    const text =
+        `Scansione di ${pending.getCenter()}: ` +
+        `${pending.getOccupiedCells()} celle occupate` +
+        (altered && s.debug ? " (risultato alterato)" : "");
 
-        const text =
-            `Scansione di ${pending.getCenter()}: ` +
-            `${pending.getOccupiedCells()} celle occupate` +
-            (altered && s.debug ? " (risultato alterato)" : "");
-
-        if (attacker.getType() === PlayerType.HUMAN) {
-            notify(s, attacker, text);
+    if (attacker.getType() === PlayerType.HUMAN) {
+        if (s.pvp && !s.debug) {
+            await handover(s, attacker);
         }
 
-        log(s, text);
-        return;
+        console.log(`\n${text}`);
     }
+
+    log(s, text);
+    return;
+}
 
     if (!(pending instanceof Attack)) {
         return;

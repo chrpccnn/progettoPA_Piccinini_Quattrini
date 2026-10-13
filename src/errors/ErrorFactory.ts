@@ -1,6 +1,15 @@
 import { AppError } from "./appError";
 
 export class ErrorFactory {
+    static userAlreadyInGame() {
+        throw new Error("Method not implemented.");
+    }
+    static opponentAlreadyInGame() {
+        throw new Error("Method not implemented.");
+    }
+    static notImplemented() {
+        throw new Error("Method not implemented.");
+    }
     static invalidTokenAmount(): AppError {
         return new AppError(
             400,

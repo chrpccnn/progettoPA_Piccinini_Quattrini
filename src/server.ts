@@ -1,16 +1,19 @@
 import "dotenv/config";
 import app from "./app";
 import sequelize from "./config/database";
-import "./models/user";
+// Registra tutti i modelli (users, games, ships, ...) e le loro relazioni
+import "./models/db";
 
 const PORT = Number(process.env.PORT || 3000);
 
 const main = async (): Promise<void> => {
     try {
-        await sequelize.sync();
         await sequelize.authenticate();
 
         console.log("Connessione a MySQL riuscita!");
+
+        // Crea le tabelle mancanti (non modifica quelle esistenti)
+        await sequelize.sync();
 
         app.listen(PORT, () => {
             console.log(`Server avviato sulla porta ${PORT}`);

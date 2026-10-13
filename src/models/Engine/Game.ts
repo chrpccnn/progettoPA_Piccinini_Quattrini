@@ -10,6 +10,24 @@ import { GameState } from "./GameState";
 import { MoveRecord } from "../MoveRecord";
 import { EnergyConfig, DEFAULT_ENERGY_CONFIG, validateEnergyConfig } from "./EnergyConfig";
 
+/*
+ * Stato di una partita gia' iniziata, letto dal database.
+ * Serve solo a GameRepository per ricostruire la partita: il costruttore
+ * parte sempre da WAITING e non permetterebbe di rimettere turno, scudi,
+ * silence usati, storico e azione in attesa.
+ */
+export interface GameRestoreData {
+    state: GameState;
+    currentPlayerIndex: number;
+    turn: number;
+    winner?: IPlayer;
+    silenceUsed: Map<IPlayer, number>;
+    shields: Map<IPlayer, Coordinates[]>;
+    history: MoveRecord[];
+    pendingAction?: IAction;
+    pendingActionPlayer?: IPlayer;
+}
+
 export class Game {
 
     private static readonly DEFAULT_SILENCE = 3;
@@ -43,7 +61,8 @@ export class Game {
         private readonly energyConfig: EnergyConfig =
             { ...DEFAULT_ENERGY_CONFIG },
         private readonly allowedOrientations: Orientation[] =
-            Object.values(Orientation)
+            Object.values(Orientation),
+        restore?: GameRestoreData
     ) {
         if (players.length !== 2) {
             throw new Error(
@@ -58,6 +77,7 @@ export class Game {
          * Il saldo NON viene modificato nel costruttore.
          */
         if (
+            restore === undefined &&
             tokenOwner.getTokens() <
             TokenCost.GAME_CREATION
         ) {
@@ -106,6 +126,51 @@ export class Game {
         this.state = GameState.WAITING;
         this.currentPlayerIndex = 0;
         this.turn = 0;
+
+        if (restore !== undefined) {
+            this.applyRestore(restore);
+        }
+    }
+
+    /*
+     * Rimette la partita nello stato salvato. Il saldo del creatore non
+     * viene controllato: la partita esiste gia' e, da specifica, prosegue
+     * anche se i TOKEN sono finiti.
+     */
+    private applyRestore(data: GameRestoreData): void {
+        if (
+            !Number.isInteger(data.currentPlayerIndex) ||
+            data.currentPlayerIndex < 0 ||
+            data.currentPlayerIndex >= this.players.length
+        ) {
+            throw new Error(
+                "Invalid current player in the saved game."
+            );
+        }
+
+        this.state = data.state;
+        this.currentPlayerIndex = data.currentPlayerIndex;
+        this.turn = data.turn;
+        this.winner = data.winner;
+
+        for (const player of this.players) {
+            this.silenceUsed.set(
+                player,
+                data.silenceUsed.get(player) ?? 0
+            );
+
+            this.shields.set(
+                player,
+                new Set(data.shields.get(player) ?? [])
+            );
+        }
+
+        this.history.push(...data.history);
+
+        if (data.pendingAction !== undefined) {
+            this.pendingAction = data.pendingAction;
+            this.pendingActionPlayer = data.pendingActionPlayer;
+        }
     }
 
     public getId(): string {

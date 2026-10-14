@@ -11,6 +11,9 @@ import {
 import { ShipType } from "../models/fleet/ShipType";
 import { Orientation } from "../models/fleet/Orientation";
 
+import { CountermeasureType } from "../models/Action/Countermeasure/CountermeasureType";
+
+
 export const emailSchema = z
     .string("email must be a string")
     .trim()
@@ -127,6 +130,39 @@ export const orientationSchema = z
         Orientation.DEPTH
     ]);
 
+export const coordinatesSchema = z.object({
+    x: z.number().int(),
+    y: z.number().int(),
+    z: z.number().int()
+}).strict();
+
+
+export const actionSchema = z.discriminatedUnion(
+    "type",
+    [
+        z.object({
+            type: z.literal("ATTACK"),
+            coordinates: coordinatesSchema
+        }).strict(),
+
+        z.object({
+            type: z.literal("SCAN"),
+            coordinates: coordinatesSchema
+        }).strict(),
+
+        z.object({
+            type: z.literal("SHIELD"),
+            coordinates: coordinatesSchema
+        }).strict(),
+
+        z.object({
+            type: z.literal("MOVE"),
+            shipId: z.string().trim().min(1),
+            destination: coordinatesSchema
+        }).strict()
+    ]
+);
+
 export const energySchema = z.object({
 
     initial: z
@@ -198,18 +234,19 @@ export const gameSchema = z.discriminatedUnion(
     ]
 );
 
-export const tokenSchema = z
+export const tokenAmountSchema = z
     .number()
-    .int()
-    .positive()
-    .min(0)
-    .max(10)
-    .default(5);
+    .nonnegative();
 
 export const refillSchema = z.object({
-    user: emailSchema,
-    token: tokenSchema
-})
+    email: emailSchema,
+    tokens: tokenAmountSchema
+}).strict();
+
+export const countermeasureSchema = z.object({
+    type: z.enum(CountermeasureType)
+}).strict();
+
 
 export type GameInput = z.infer<typeof gameSchema>;
 
@@ -227,6 +264,8 @@ export type TypeSchema = z.infer<typeof type>;
 
 export type IdSchema = z.infer<typeof id>;
 
-export type TokenSchema = z.infer<typeof tokenSchema>;
+export type RefillInput = z.infer<typeof refillSchema>;
 
-export type RefillSchema = z.infer<typeof refillSchema>;
+export type ActionInput = z.infer<typeof actionSchema>;
+
+export type CountermeasureInput = z.infer<typeof countermeasureSchema>;

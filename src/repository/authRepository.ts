@@ -1,6 +1,6 @@
-import { Transaction, literal } from "sequelize";
+import { Transaction } from "sequelize";
 import { User } from "../models/user"
-import { TokenSchema } from "../Zod/zodSchemas";
+import { MailSchema } from "../Zod/zodSchemas";
 
 class UserRepository {
     async findByEmail(email: string, transaction?: Transaction) {
@@ -38,20 +38,18 @@ class UserRepository {
     }
 
     async incrementTokens(
-        userId: number,
+        email: MailSchema,
         tokens: number
-    ): Promise<boolean> {
+    ) {
+        const user = await this.findByEmail(email);
 
-        const [affectedRows] = await User.update(
-            {
-                tokens: literal(`tokens + ${tokens}`) as any
-            },
-            {
-                where: { id: userId }
-            }
-        );
+        if (!user) {
+            return null;
+        }
 
-        return affectedRows > 0;
+        user.tokens = Number(tokens.toFixed(3));
+
+        return user.save();
     }
 }
 export default new UserRepository();

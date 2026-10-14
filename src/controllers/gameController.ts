@@ -1,7 +1,8 @@
 import { NextFunction, Response } from "express";
 import { AuthenticatedRequest } from "../middleware/authMiddleware";
 import { GameService } from "../services/gameService";
-import { GameParams } from "../Zod/zodSchemas";
+import { GameParams, actionSchema, countermeasureSchema } from "../Zod/zodSchemas";
+import { ErrorFactory } from "../errors/ErrorFactory";
 
 export async function createGame(
     req: AuthenticatedRequest,
@@ -45,10 +46,17 @@ export async function makeAction(
     next: NextFunction
 ) {
      try {
+        const body = actionSchema.safeParse(req.body);
+
+        if (!body.success) {
+            return next( ErrorFactory.badRequest( "Invalid action data")
+            );
+        }
+
         const result = await GameService.performAction(
             req.params.gameId,
             req.user!.id,
-            req.body
+            body.data
         );
 
         return res.status(200).json(result);
@@ -64,11 +72,23 @@ export async function makeCountermeasure(
     next: NextFunction
 ) {
     try {
-        const result = await GameService.performCountermeasure(
-            req.params.gameId,
-            req.user!.id,
-            req.body
-        );
+        const parsed =
+            countermeasureSchema.safeParse(req.body);
+
+        if (!parsed.success) {
+            return next(
+                ErrorFactory.badRequest(
+                    "Invalid countermeasure data"
+                )
+            );
+        }
+
+        const result =
+            await GameService.performCountermeasure(
+                req.params.gameId,
+                req.user!.id,
+                parsed.data
+            );
 
         return res.status(200).json(result);
     }

@@ -8,10 +8,10 @@ export async function refill(
     next: NextFunction
 ) {
     try {
-        const { userId, tokens } = req.body;
+        const { email, tokens } = req.body;
 
         const result = await RefillService.refill(
-            userId,
+            email,
             tokens
         );
 

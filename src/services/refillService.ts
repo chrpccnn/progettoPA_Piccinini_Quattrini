@@ -1,14 +1,15 @@
 import { ErrorFactory } from "../errors/ErrorFactory";
 import UserRepository from "../repository/authRepository";
+import { MailSchema } from "../Zod/zodSchemas";
 
 export class RefillService {
 
     static async refill(
-        userId: number,
+        email: MailSchema,
         tokens: number
     ) {
         const updated = await UserRepository.incrementTokens(
-            userId,
+            email,
             tokens
         );
 
@@ -17,7 +18,11 @@ export class RefillService {
         }
 
         return {
-            message: "Tokens refilled successfully"
+            message: "Tokens refilled successfully",
+            user: {
+                email: updated.email,
+                tokens: updated.getTokens()
+            }
         };
     }
 }

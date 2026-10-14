@@ -20,7 +20,19 @@ import { Scan } from "../models/Action/BasicMove/Scan";
 import { GameMode } from "../models/UserType";
 
 import { TokenCost } from "../TokenCost";
+import { ActionInput, CountermeasureInput } from "../Zod/zodSchemas";
+import { IAction } from "../models/Action/IAction";
+import { GameEngine } from "../models/Engine/GameEngine";
+import { Shield } from "../models/Action/BasicMove/Shield";
+import { Move } from "../models/Action/BasicMove/Move";
+import { Coordinates } from "../models/grid/Coordinates";
+import { DbTransaction } from "../repository/transaction";
 
+import { Countermeasure } from "../models/Action/Countermeasure";
+import { CancelAttack } from "../models/Action/Countermeasure/CancelAttack";
+import { AlterScan } from "../models/Action/Countermeasure/AlterScan";
+import { RadioSilence } from "../models/Action/Countermeasure/RadioSilance";
+import { CountermeasureType } from "../models/Action/Countermeasure/CountermeasureType";
 
 export class GameService {
 
@@ -314,24 +326,341 @@ export class GameService {
     static async performAction(
         gameId: string,
         userId: number,
-        body: unknown
+        body: ActionInput
     ) {
-        throw ErrorFactory.notImplemented();
+        return withTransaction(
+            async transaction => {
+
+                const game =
+                    await GameRepository.findById(
+                        gameId,
+                        transaction,
+                        true
+                    );
+
+                if (!game) {
+                    throw ErrorFactory.gameNotFound();
+                }
+
+                const player =
+                    GameService.playerOfUser(
+                        game,
+                        userId
+                    );
+
+                if (!player) {
+                    throw ErrorFactory.forbidden();
+                }
+
+                const action =
+                    GameService.buildAction(
+                        body,
+                        player
+                    );
+
+                const engine =
+                    GameEngine.getInstance();
+
+                try {
+                    engine.executeAction(
+                        game,
+                        player,
+                        action
+                    );
+                }
+                catch (error) {
+
+                    if (
+                        error instanceof Error &&
+                        error.message ===
+                        "Insufficient energy."
+                    ) {
+                        throw ErrorFactory
+                            .insufficientEnergy();
+                    }
+
+                    if (error instanceof Error) {
+                        throw ErrorFactory.badRequest(
+                            error.message
+                        );
+                    }
+
+                    throw error;
+                }
+
+                await GameRepository.update(
+                    game,
+                    transaction
+                );
+
+                return {
+                    gameId: game.getId(),
+
+                    action: body.type,
+
+                    status: game.hasPendingAction()
+                        ? "PENDING_COUNTERMEASURE"
+                        : "EXECUTED",
+
+                    state: game.getState(),
+
+                    turn: game.getTurn(),
+
+                    currentPlayer: {
+                        id: game
+                            .getCurrentPlayer()
+                            .getId(),
+
+                        type: game
+                            .getCurrentPlayer()
+                            .getType()
+                    },
+
+                    energyRemaining:
+                        player.getEnergy(),
+
+                    tokensRemaining:
+                        player instanceof HumanPlayer
+                            ? player
+                                .getUser()
+                                .getTokens()
+                            : undefined
+                };
+            }
+        );
+    }
+
+    private static buildCountermeasure(
+        game: Game,
+        body: CountermeasureInput
+    ): Countermeasure {
+
+        const pending =
+            game.getPendingAction();
+
+        if (!pending) {
+            throw ErrorFactory.badRequest(
+                "There is no action to counter"
+            );
+        }
+
+        switch (body.type) {
+
+            case CountermeasureType.CANCEL_ATTACK:
+
+                if (!(pending instanceof Attack)) {
+                    throw ErrorFactory.badRequest(
+                        "CancelAttack can only counter an Attack"
+                    );
+                }
+
+                return new CancelAttack(pending);
+
+
+            case CountermeasureType.RADIO_SILENCE:
+
+                if (!(pending instanceof Attack)) {
+                    throw ErrorFactory.badRequest(
+                        "RadioSilence can only counter an Attack"
+                    );
+                }
+
+                return new RadioSilence(pending);
+
+
+            case CountermeasureType.ALTER_SCAN:
+
+                if (!(pending instanceof Scan)) {
+                    throw ErrorFactory.badRequest(
+                        "AlterScan can only counter a Scan"
+                    );
+                }
+
+                return new AlterScan(pending);
+        }
     }
 
     static async performCountermeasure(
         gameId: string,
         userId: number,
-        body: unknown
+        body: CountermeasureInput
     ) {
-        throw ErrorFactory.notImplemented();
+        return withTransaction(
+            async transaction => {
+
+                const game =
+                    await GameService.loadForParticipant(
+                        gameId,
+                        userId,
+                        transaction,
+                        true
+                    );
+
+                const player =
+                    GameService.playerOfUser(
+                        game,
+                        userId
+                    )!;
+
+                const countermeasure =
+                    GameService.buildCountermeasure(
+                        game,
+                        body
+                    );
+
+                const engine =
+                    GameEngine.getInstance();
+
+                try {
+                    engine.executeCountermeasure(
+                        game,
+                        player,
+                        countermeasure
+                    );
+                }
+                catch (error) {
+
+                    if (
+                        error instanceof Error &&
+                        error.message ===
+                        "Insufficient energy."
+                    ) {
+                        throw ErrorFactory.insufficientEnergy();
+                    }
+
+                    if (error instanceof Error) {
+                        throw ErrorFactory.badRequest(
+                            error.message
+                        );
+                    }
+
+                    throw error;
+                }
+
+                await GameRepository.update(
+                    game,
+                    transaction
+                );
+
+                return {
+                    gameId: game.getId(),
+
+                    countermeasure: body.type,
+
+                    state: game.getState(),
+
+                    turn: game.getTurn(),
+
+                    currentPlayer: {
+                        id: game
+                            .getCurrentPlayer()
+                            .getId(),
+
+                        type: game
+                            .getCurrentPlayer()
+                            .getType()
+                    },
+
+                    energyRemaining:
+                        player.getEnergy(),
+
+                    silenceRemaining:
+                        game.getSilenceRemaining(
+                            player
+                        ),
+
+                    tokensRemaining:
+                        player instanceof HumanPlayer
+                            ? player
+                                .getUser()
+                                .getTokens()
+                            : undefined
+                };
+            }
+        );
     }
 
     static async passCountermeasure(
         gameId: string,
         userId: number
     ) {
-        throw ErrorFactory.notImplemented();
+        return withTransaction(
+            async transaction => {
+
+                const game =
+                    await GameService.loadForParticipant(
+                        gameId,
+                        userId,
+                        transaction,
+                        true
+                    );
+
+                const player =
+                    GameService.playerOfUser(
+                        game,
+                        userId
+                    )!;
+
+                const engine =
+                    GameEngine.getInstance();
+
+                let result;
+
+                try {
+                    result = engine.pass(
+                        game,
+                        player
+                    );
+                }
+                catch (error) {
+
+                    if (error instanceof Error) {
+                        throw ErrorFactory.badRequest(
+                            error.message
+                        );
+                    }
+
+                    throw error;
+                }
+
+                await GameRepository.update(
+                    game,
+                    transaction
+                );
+
+                return {
+                    gameId: game.getId(),
+
+                    status: "EXECUTED",
+
+                    result: result ?? null,
+
+                    state: game.getState(),
+
+                    turn: game.getTurn(),
+
+                    currentPlayer: {
+                        id: game
+                            .getCurrentPlayer()
+                            .getId(),
+
+                        type: game
+                            .getCurrentPlayer()
+                            .getType()
+                    },
+
+                    energyRemaining:
+                        player.getEnergy(),
+
+                    tokensRemaining:
+                        player instanceof HumanPlayer
+                            ? player
+                                .getUser()
+                                .getTokens()
+                            : undefined
+                };
+            }
+        );
     }
 
     /*
@@ -357,15 +686,27 @@ export class GameService {
      */
     private static async loadForParticipant(
         gameId: string,
-        userId: number
+        userId: number,
+        transaction?: DbTransaction,
+        forUpdate: boolean = false
     ): Promise<Game> {
-        const game = await GameRepository.findById(gameId);
+
+        const game = await GameRepository.findById(
+            gameId,
+            transaction,
+            forUpdate
+        );
 
         if (!game) {
             throw ErrorFactory.gameNotFound();
         }
 
-        if (GameService.playerOfUser(game, userId) === undefined) {
+        if (
+            GameService.playerOfUser(
+                game,
+                userId
+            ) === undefined
+        ) {
             throw ErrorFactory.forbidden();
         }
 
@@ -389,5 +730,63 @@ export class GameService {
         )
             ? GameMode.USER
             : GameMode.AI;
+    }
+
+    private static buildAction(
+        body: ActionInput,
+        player: IPlayer
+    ): IAction {
+
+        switch (body.type) {
+
+            case "ATTACK":
+                return new Attack(
+                    Coordinates.create(
+                        body.coordinates.x,
+                        body.coordinates.y,
+                        body.coordinates.z
+                    )
+                );
+
+            case "SCAN":
+                return new Scan(
+                    Coordinates.create(
+                        body.coordinates.x,
+                        body.coordinates.y,
+                        body.coordinates.z
+                    )
+                );
+
+            case "SHIELD":
+                return new Shield(
+                    Coordinates.create(
+                        body.coordinates.x,
+                        body.coordinates.y,
+                        body.coordinates.z
+                    )
+                );
+
+            case "MOVE": {
+                const ship =
+                    player
+                        .getFleet()
+                        .getShipById(body.shipId);
+
+                if (!ship) {
+                    throw ErrorFactory.badRequest(
+                        "Ship not found in player's fleet"
+                    );
+                }
+
+                return new Move(
+                    ship,
+                    Coordinates.create(
+                        body.destination.x,
+                        body.destination.y,
+                        body.destination.z
+                    )
+                );
+            }
+        }
     }
 }

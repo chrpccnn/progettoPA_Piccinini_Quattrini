@@ -2,14 +2,27 @@ import { Request, Response, NextFunction } from "express";
 import { ErrorFactory } from "../errors/ErrorFactory";
 import { AuthenticatedRequest } from "./authMiddleware";
 
-export function userRoleMiddleware(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
+    export function roleMiddleware(
+    role: "user" | "admin"
 ) {
-     if (!req.user || req.user.role !== "user") {
-        return next(ErrorFactory.forbidden());
-    }
+    return (
+        req: AuthenticatedRequest,
+        _res: Response,
+        next: NextFunction
+    ) => {
 
-    next();
+        if (!req.user) {
+            return next(
+                ErrorFactory.invalidToken()
+            );
+        }
+
+        if (req.user.role !== role) {
+            return next(
+                ErrorFactory.forbidden()
+            );
+        }
+
+        return next();
+    };
 }

@@ -4,6 +4,7 @@ import { logger } from "./middleware/logger";
 import { errorHandler } from "./middleware/errorHandler";
 import authRoutes from "./routes/authRoutes";
 import gameRoutes from "./routes/gameRoutes";
+import adminRoutes from "./routes/adminRoutes"
 
 const app = express();
 
@@ -16,7 +17,7 @@ app.use(logger);
 app.use("/", router);
 app.use("/auth", authRoutes);
 app.use("/game", gameRoutes);
-//app.use("/admin");
+app.use("/refill", adminRoutes);
 
 app.use((req, res) => {
     res.status(404).json({

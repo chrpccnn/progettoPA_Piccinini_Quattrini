@@ -1,0 +1,43 @@
+client->gameRoutes: POST /game/:gameId/pass
+
+gameRoutes->authMiddleware: verify JWT
+authMiddleware-->gameRoutes: next()
+gameRoutes->userRoleMiddleware: verify role
+userRoleMiddleware-->gameRoutes: next()
+gameRoutes->gameController: passTurn(req, res, next)
+gameController->gameService: passTurn(gameId, userId)
+gameService->gameRepository: getGame(gameId)
+gameRepository->MySQL: retrieve game data
+MySQL-->gameRepository: GameData | null
+gameRepository-->gameService: Game | null
+
+alt game not found
+    gameService-->gameController: throw GameNotFound
+    gameController->errorHandler: next(err)
+    errorHandler-->client: 404 Game not found
+end
+
+gameService->gameService: verify userId is a participant
+
+alt user is not participant
+    gameService-->gameController: throw Forbidden
+    gameController->errorHandler: next(err)
+    errorHandler-->client: 403 Forbidden
+end
+
+gameService->GameEngine: pass(game, player)
+alt pass not allowed
+    GameEngine-->gameService: throw pass error
+    gameService-->gameController: throw error
+    gameController->errorHandler: next(err)
+    errorHandler-->client: error response
+
+else pass executed
+    GameEngine-->gameService: pass result
+    gameService->gameRepository: save updated game
+    gameRepository->MySQL: UPDATE game state
+    MySQL-->gameRepository: saved
+    gameRepository-->gameService: updated
+    gameService-->gameController: pass result
+    gameController-->client: 200 OK + JSON
+end

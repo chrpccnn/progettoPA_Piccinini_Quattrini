@@ -6,7 +6,7 @@ authMiddleware-->gameRoutes: next()
 gameRoutes->userRoleMiddleware: verify role
 userRoleMiddleware-->gameRoutes: next()
 gameRoutes->gameController: makeAction(req, res, next)
-gameController->gameService: performAction(gameId, userId, body)
+gameController->gameService: makeAction(gameId, userId, body)
 gameService->gameRepository: getGame(gameId)
 gameRepository->MySQL: retrieve game data
 MySQL-->gameRepository: GameData | null

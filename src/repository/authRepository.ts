@@ -1,7 +1,8 @@
-import { Transaction } from "sequelize";
+import { Transaction, literal } from "sequelize";
 import { User } from "../models/user"
+import { TokenSchema } from "../Zod/zodSchemas";
 
-class UserRepository{
+class UserRepository {
     async findByEmail(email: string, transaction?: Transaction) {
         return User.findOne({ where: { email }, transaction });
     }
@@ -24,17 +25,33 @@ class UserRepository{
         });
     }
 
-    async createNewUser(email: string, password: string)
-    {
+    async createNewUser(email: string, password: string) {
         return await User.create({
-        email,
-        password,
-        role: "user"
+            email,
+            password,
+            role: "user"
         });
     }
 
     async save(user: User, transaction?: Transaction) {
         return user.save({ transaction });
+    }
+
+    async incrementTokens(
+        userId: number,
+        tokens: number
+    ): Promise<boolean> {
+
+        const [affectedRows] = await User.update(
+            {
+                tokens: literal(`tokens + ${tokens}`) as any
+            },
+            {
+                where: { id: userId }
+            }
+        );
+
+        return affectedRows > 0;
     }
 }
 export default new UserRepository();

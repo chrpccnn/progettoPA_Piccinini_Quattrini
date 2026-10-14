@@ -1,0 +1,19 @@
+client->gameRoutes: GET /game/:gameId/history.csv
+
+gameRoutes->gameController: getHistory(req, res, next)
+gameController->gameService: getGameHistory(gameId, userId)
+
+gameService->gameRepository: getGame(gameId)
+gameRepository->MySQL: retrieve game and participants
+MySQL-->gameRepository: Game | null
+
+gameService->gameService: verify participant
+
+gameService->gameRepository: getHistory(gameId)
+gameRepository->MySQL: SELECT history WHERE gameId = ?
+MySQL-->gameRepository: history
+gameRepository-->gameService: history
+
+gameService->gameService: convert history to CSV
+gameService-->gameController: csv
+gameController-->client: 200 OK + text/csv

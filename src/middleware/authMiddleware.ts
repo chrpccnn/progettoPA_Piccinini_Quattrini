@@ -1,14 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { ErrorFactory } from "../errors/ErrorFactory";
-import { jwtPayloadSchema } from "../Zod/zodSchemas"
+import { jwtPayloadSchema, JwtPayload } from "../Zod/zodSchemas"
 
-export interface AuthenticatedRequest<P = {}> extends Request<P> {
-    user?: {
-        id: number;
-        email: string;
-        role: string;
-    };
+export interface AuthenticatedRequest<P = {}>
+    extends Request<P> {
+    user?: JwtPayload;
 }
 
 export default function authMiddleware(
@@ -24,16 +21,16 @@ export default function authMiddleware(
 
     const jwt_divide = authHeader.split(" ");
 
-    if (jwt_divide.length !== 2 || jwt_divide[0] !== "Bearer") {
+    if (!authHeader.match(/^Bearer\s+(\S+)$/i)) {
         return next(ErrorFactory.invalidToken());
     }
-    
+
     const secret = process.env.JWT_SECRET;
 
     if (!secret) {
         throw new Error("JWT_SECRET is not configured");
     }
-        
+
     const [_, token] = jwt_divide;
 
     try {

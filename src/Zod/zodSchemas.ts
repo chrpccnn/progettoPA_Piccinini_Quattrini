@@ -40,9 +40,17 @@ export const id = z
     .positive();
 
 export const jwtPayloadSchema = z.object({
-    id: id,
+     id: z
+        .number()
+        .int()
+        .positive(),
+
     email: emailSchema,
-    role: role
+
+    role: z.enum([
+        "user",
+        "admin"
+    ])
 });
 
 export const gameParamsSchema = z.object({
@@ -190,6 +198,18 @@ export const gameSchema = z.discriminatedUnion(
     ]
 );
 
+export const tokenSchema = z
+    .number()
+    .int()
+    .positive()
+    .min(0)
+    .max(10)
+    .default(5);
+
+export const refillSchema = z.object({
+    user: emailSchema,
+    token: tokenSchema
+})
 
 export type GameInput = z.infer<typeof gameSchema>;
 
@@ -206,3 +226,7 @@ export type RoleSchema = z.infer<typeof role>;
 export type TypeSchema = z.infer<typeof type>;
 
 export type IdSchema = z.infer<typeof id>;
+
+export type TokenSchema = z.infer<typeof tokenSchema>;
+
+export type RefillSchema = z.infer<typeof refillSchema>;

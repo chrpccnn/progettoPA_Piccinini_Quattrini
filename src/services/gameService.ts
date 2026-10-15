@@ -767,24 +767,51 @@ export class GameService {
                 );
 
             case "MOVE": {
-                const ship =
-                    player
+                const ship = player
                         .getFleet()
                         .getShipById(body.shipId);
 
                 if (!ship) {
-                    throw ErrorFactory.badRequest(
-                        "Ship not found in player's fleet"
-                    );
+                    throw ErrorFactory.badRequest("Ship not found in player's fleet");
                 }
+
+                const positions = ship.getPositions();
+
+                if (positions.length === 0) {
+                    throw ErrorFactory.badRequest("Ship has no position");
+                }
+
+                const origin = positions[0];
+
+                let x = origin.x;
+                let y = origin.y;
+                let z = origin.z;
+
+                switch (body.axis) {
+
+                    case "X":
+                        x += body.direction;
+                        break;
+
+                    case "Y":
+                        y += body.direction;
+                        break;
+
+                    case "Z":
+                        z += body.direction;
+                        break;
+                }
+
+                const destination =
+                    Coordinates.create(
+                        x,
+                        y,
+                        z
+                    );
 
                 return new Move(
                     ship,
-                    Coordinates.create(
-                        body.destination.x,
-                        body.destination.y,
-                        body.destination.z
-                    )
+                    destination
                 );
             }
         }

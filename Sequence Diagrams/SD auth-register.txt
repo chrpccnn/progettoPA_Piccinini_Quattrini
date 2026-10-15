@@ -13,12 +13,13 @@ alt user already exists
     authService-->authController: throw UserAlreadyExists
     authController->errorHandler: next(err)
     errorHandler-->client: 409 Conflict
-else user not found
-    authService->authService: bcrypt.hash(password)
-    authService->authRepository: createNewUser(email, encryptedPassword)
-    authRepository->MySQL: INSERT INTO users...
-    MySQL-->authRepository: NewUser
-    authRepository-->authService: NewUser
-    authService-->authController: NewUser
-    authController-->client: 201 Created
 end
+
+authService->authService: bcrypt.hash(password)
+authService->authRepository: createNewUser(email, encryptedPassword)
+authRepository->MySQL: INSERT user
+MySQL-->authRepository: User
+authRepository-->authService: User
+
+authService-->authController: registration result
+authController-->client: 201 Created + JSON

@@ -1,19 +1,40 @@
-client->gameRoutes: GET /game/:gameId/history.csv
+title Sequence diagram - GET /game/:gameId/history
+
+client->gameRoutes: GET /game/:gameId/history
+
+gameRoutes->authMiddleware: verify JWT
+authMiddleware-->gameRoutes: next()
+
+gameRoutes->roleMiddleware: requireRole("user")
+roleMiddleware-->gameRoutes: next()
 
 gameRoutes->gameController: getHistory(req, res, next)
 gameController->gameService: getGameHistory(gameId, userId)
 
-gameService->gameRepository: getGame(gameId)
-gameRepository->MySQL: retrieve game and participants
-MySQL-->gameRepository: Game | null
+gameService->gameService: loadForParticipant(gameId, userId)
 
-gameService->gameService: verify participant
+gameService->gameRepository: findById(gameId)
+gameRepository->MySQL: SELECT game, participants and moves
+MySQL-->gameRepository: persisted game data | null
+gameRepository->gameRepository: restore domain Game including history
+gameRepository-->gameService: Game | undefined
 
-gameService->gameRepository: getHistory(gameId)
-gameRepository->MySQL: SELECT history WHERE gameId = ?
-MySQL-->gameRepository: history
-gameRepository-->gameService: history
+alt game not found
+    gameService-->gameController: throw GameNotFound
+    gameController->errorHandler: next(err)
+    errorHandler-->client: 404 Game not found
+end
 
-gameService->gameService: convert history to CSV
+gameService->gameService: verify userId is a participant
+
+alt user is not participant
+    gameService-->gameController: throw Forbidden
+    gameController->errorHandler: next(err)
+    errorHandler-->client: 403 Forbidden
+end
+
+gameService->HistoryCsv: historyToCsv(game, player)
+HistoryCsv-->gameService: CSV
+
 gameService-->gameController: csv
 gameController-->client: 200 OK + text/csv

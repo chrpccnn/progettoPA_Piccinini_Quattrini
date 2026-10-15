@@ -1,50 +1,63 @@
 title Sequence diagram - POST /game/:gameId/countermeasure
 
 client->gameRoutes: POST /game/:gameId/countermeasure
+
 gameRoutes->authMiddleware: verify JWT
 authMiddleware-->gameRoutes: next()
-gameRoutes->userRoleMiddleware: verify role
-userRoleMiddleware-->gameRoutes: next()
+
+gameRoutes->roleMiddleware: requireRole("user")
+roleMiddleware-->gameRoutes: next()
+
 gameRoutes->gameController: makeCountermeasure(req, res, next)
-gameController->gameService: makeCountermeasure(gameId, userId, body)
-gameService->gameRepository: getGame(gameId)
-gameRepository->MySQL: retrieve game data
-MySQL-->gameRepository: GameData | null
-gameRepository-->gameService: Game | null
+gameController->gameController: countermeasureSchema.safeParse(req.body)
+
+alt invalid countermeasure body
+    gameController->errorHandler: next(BadRequest)
+    errorHandler-->client: 400 Invalid countermeasure data
+end
+
+gameController->gameService: performCountermeasure(gameId, userId, parsedBody)
+gameService->gameService: begin transaction
+
+gameService->gameRepository: findById(gameId, transaction, true)
+gameRepository->MySQL: SELECT game and related data FOR UPDATE
+MySQL-->gameRepository: persisted game data | null
+gameRepository->gameRepository: restore domain Game
+gameRepository-->gameService: Game | undefined
 
 alt game not found
     gameService-->gameController: throw GameNotFound
     gameController->errorHandler: next(err)
     errorHandler-->client: 404 Game not found
-
-else game found
-    gameService->gameService: verify userId is a participant
-    
-    alt user is not participant
-        gameService-->gameController: throw Forbidden
-        gameController->errorHandler: next(err)
-        errorHandler-->client: 403 Forbidden
-
-    else user is participant
-         gameService->GameEngine: executeCountermeasure(game, player, countermeasure)
-        
-            alt countermeasure not allowed
-                GameEngine-->gameService: throw countermeasure error
-                gameService-->gameController: throw error
-                gameController->errorHandler: next(err)
-                errorHandler-->client: error response
-                
-            else countermeasure executed
-                GameEngine-->gameService: countermeasure result
-
-                gameService->gameRepository: save updated game and action history
-                gameRepository->MySQL: UPDATE game state + INSERT history
-                MySQL-->gameRepository: saved
-                gameRepository-->gameService: updated
-
-                gameService-->gameController: countermeasure result
-                gameController-->client: 200 OK + JSON
-            end
-        end
-    end
 end
+
+gameService->gameService: verify userId is a participant
+
+alt user is not participant
+    gameService-->gameController: throw Forbidden
+    gameController->errorHandler: next(err)
+    errorHandler-->client: 403 Forbidden
+end
+
+gameService->gameService: buildCountermeasure(game, body)
+gameService->gameService: use pending action as countermeasure target
+
+gameService->GameEngine: executeCountermeasure(game, player, countermeasure)
+
+alt countermeasure not allowed
+    GameEngine-->gameService: throw countermeasure error
+    gameService-->gameController: throw BadRequest
+    gameController->errorHandler: next(err)
+    errorHandler-->client: error response
+end
+
+GameEngine-->gameService: countermeasure result
+
+gameService->gameRepository: update(game, transaction)
+gameRepository->MySQL: UPDATE game, Energy, TOKEN, silence, pending and history
+MySQL-->gameRepository: persisted
+gameRepository-->gameService: updated
+
+gameService->gameService: commit transaction
+gameService-->gameController: countermeasure response
+gameController-->client: 200 OK + JSON

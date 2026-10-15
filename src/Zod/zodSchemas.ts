@@ -43,7 +43,7 @@ export const id = z
     .positive();
 
 export const jwtPayloadSchema = z.object({
-     id: z
+    id: z
         .number()
         .int()
         .positive(),
@@ -158,7 +158,16 @@ export const actionSchema = z.discriminatedUnion(
         z.object({
             type: z.literal("MOVE"),
             shipId: z.string().trim().min(1),
-            destination: coordinatesSchema
+            axis: z.enum([
+                "X",
+                "Y",
+                "Z"
+            ]),
+
+            direction: z.union([
+                z.literal(1),
+                z.literal(-1)
+            ])
         }).strict()
     ]
 );
@@ -190,15 +199,15 @@ export const energySchema = z.object({
         )
 
 })
-.strict()
-.refine(
-    energy => energy.initial <= energy.max,
-    {
-        message:
-            "initial energy cannot exceed max energy",
-        path: ["initial"]
-    }
-);
+    .strict()
+    .refine(
+        energy => energy.initial <= energy.max,
+        {
+            message:
+                "initial energy cannot exceed max energy",
+            path: ["initial"]
+        }
+    );
 
 export const silenceSchema = z
     .number()
@@ -221,17 +230,17 @@ export const commonGameSchema = z.object({
 
 export const gameSchema = z.discriminatedUnion(
     "mode", [commonGameSchema.extend({
-            // mode user
-            mode: z.literal(modeSchema.enum.user),
-            opponentEmail: emailSchema,
-            silence: silenceSchema
-        }).strict(),
+        // mode user
+        mode: z.literal(modeSchema.enum.user),
+        opponentEmail: emailSchema,
+        silence: silenceSchema
+    }).strict(),
 
-        commonGameSchema.extend({
-            // mode ai
-            mode: z.literal(modeSchema.enum.ai)
-        }).strict()
-    ]
+    commonGameSchema.extend({
+        // mode ai
+        mode: z.literal(modeSchema.enum.ai)
+    }).strict()
+]
 );
 
 export const tokenAmountSchema = z

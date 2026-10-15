@@ -13,16 +13,16 @@ alt user not found
     authService-->authController: throw InvalidCredentials
     authController->errorHandler: next(err)
     errorHandler-->client: 401 Unauthorized
-else user found
-    authService->authService: bcrypt.compare(password, hash)
-
-    alt password invalid
-        authService-->authController: throw InvalidCredentials
-        authController->errorHandler: next(err)
-        errorHandler-->client: 401 Unauthorized
-    else password valid
-        authService->authService: jwt.sign(...)
-        authService-->authController: token
-        authController-->client: 200 OK + JWT
-    end
 end
+
+authService->authService: bcrypt.compare(password, hash)
+
+alt password invalid
+    authService-->authController: throw InvalidCredentials
+    authController->errorHandler: next(err)
+    errorHandler-->client: 401 Unauthorized
+end
+
+authService->authService: jwt.sign(user metadata)
+authService-->authController: token + user data
+authController-->client: 200 OK + JSON

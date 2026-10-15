@@ -72,8 +72,7 @@ export async function makeCountermeasure(
     next: NextFunction
 ) {
     try {
-        const parsed =
-            countermeasureSchema.safeParse(req.body);
+        const parsed = countermeasureSchema.safeParse(req.body);
 
         if (!parsed.success) {
             return next(

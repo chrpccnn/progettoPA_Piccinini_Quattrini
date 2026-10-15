@@ -214,9 +214,7 @@ class GameRepository {
     ): Promise<Game | undefined> {
 
         if (forUpdate && transaction === undefined) {
-            throw new Error(
-                "A transaction is required to lock the game."
-            );
+            throw new Error( "A transaction is required to lock the game." );
         }
 
         const gameRow = await GameModel.findByPk(id, {

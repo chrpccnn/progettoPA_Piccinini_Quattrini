@@ -1,15 +1,23 @@
+title Sequence diagram - POST /game/:gameId/pass
+
 client->gameRoutes: POST /game/:gameId/pass
 
 gameRoutes->authMiddleware: verify JWT
 authMiddleware-->gameRoutes: next()
-gameRoutes->userRoleMiddleware: verify role
-userRoleMiddleware-->gameRoutes: next()
+
+gameRoutes->roleMiddleware: requireRole("user")
+roleMiddleware-->gameRoutes: next()
+
 gameRoutes->gameController: passTurn(req, res, next)
-gameController->gameService: passTurn(gameId, userId)
-gameService->gameRepository: getGame(gameId)
-gameRepository->MySQL: retrieve game data
-MySQL-->gameRepository: GameData | null
-gameRepository-->gameService: Game | null
+gameController->gameService: passCountermeasure(gameId, userId)
+
+gameService->gameService: begin transaction
+
+gameService->gameRepository: findById(gameId, transaction, true)
+gameRepository->MySQL: SELECT game and related data FOR UPDATE
+MySQL-->gameRepository: persisted game data | null
+gameRepository->gameRepository: restore domain Game
+gameRepository-->gameService: Game | undefined
 
 alt game not found
     gameService-->gameController: throw GameNotFound
@@ -26,18 +34,21 @@ alt user is not participant
 end
 
 gameService->GameEngine: pass(game, player)
+
 alt pass not allowed
     GameEngine-->gameService: throw pass error
-    gameService-->gameController: throw error
+    gameService-->gameController: throw BadRequest
     gameController->errorHandler: next(err)
     errorHandler-->client: error response
-
-else pass executed
-    GameEngine-->gameService: pass result
-    gameService->gameRepository: save updated game
-    gameRepository->MySQL: UPDATE game state
-    MySQL-->gameRepository: saved
-    gameRepository-->gameService: updated
-    gameService-->gameController: pass result
-    gameController-->client: 200 OK + JSON
 end
+
+GameEngine-->gameService: pending action resolved
+
+gameService->gameRepository: update(game, transaction)
+gameRepository->MySQL: UPDATE game, TOKEN, pending, ships and history
+MySQL-->gameRepository: persisted
+gameRepository-->gameService: updated
+
+gameService->gameService: commit transaction
+gameService-->gameController: pass response
+gameController-->client: 200 OK + JSON

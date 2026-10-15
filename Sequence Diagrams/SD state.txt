@@ -1,33 +1,38 @@
 title Sequence diagram - GET /game/:gameId/state
 
 client->gameRoutes: GET /game/:gameId/state
+
 gameRoutes->authMiddleware: verify JWT
 authMiddleware-->gameRoutes: next()
-gameRoutes->userRoleMiddleware: verify role
-userRoleMiddleware-->gameRoutes: next()
+
+gameRoutes->roleMiddleware: requireRole("user")
+roleMiddleware-->gameRoutes: next()
+
 gameRoutes->gameController: getGameState(req, res, next)
 gameController->gameService: getGameState(gameId, userId)
-gameService->gameRepository: getGameState(gameId)
-gameRepository->MySQL: retrieve game state and participants
-MySQL-->gameRepository: GameData | null
-gameRepository-->gameService: GameData | null
+
+gameService->gameService: loadForParticipant(gameId, userId)
+
+gameService->gameRepository: findById(gameId)
+gameRepository->MySQL: SELECT game and related persisted data
+MySQL-->gameRepository: persisted game data | null
+gameRepository->gameRepository: restore domain Game
+gameRepository-->gameService: Game | undefined
 
 alt game not found
     gameService-->gameController: throw GameNotFound
     gameController->errorHandler: next(err)
     errorHandler-->client: 404 Game not found
-
-else game found
-    gameService->gameService: verify userId is a participant
-
-    alt user is not participant
-        gameService-->gameController: throw Forbidden
-        gameController->errorHandler: next(err)
-        errorHandler-->client: 403 Forbidden
-
-    else user is participant
-        gameService->gameService: prepare game state response
-        gameService-->gameController: gameState
-        gameController-->client: 200 OK + JSON
-    end
 end
+
+gameService->gameService: verify userId is a participant
+
+alt user is not participant
+    gameService-->gameController: throw Forbidden
+    gameController->errorHandler: next(err)
+    errorHandler-->client: 403 Forbidden
+end
+
+gameService->gameService: prepare game state response
+gameService-->gameController: gameState
+gameController-->client: 200 OK + JSON

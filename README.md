@@ -11,7 +11,7 @@ https://github.com/chrpccnn/progettoPA_Piccinini_Quattrini/tree/main
 2. [Tecnologie utilizzate e struttura](#2-tecnologie-utilizzate-e-struttura)
 3. [Regole del gioco](#3-regole-del-gioco)
 4. [Diagrammi e rotte](#4-diagrammi-e-rotte)
-5. [Pattern](#5-pattern)
+5. [Pattern](#5-pattern-utilizzati)
 6. [Installazione](#6-installazione)
 
 ---

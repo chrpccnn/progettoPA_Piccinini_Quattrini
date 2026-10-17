@@ -1,17 +1,15 @@
 
+/** @type {import('jest').Config} */
 module.exports = {
-  preset: 'ts-jest',
-  testEnvironment: 'node',
-  testMatch: ['**/tests/**/*.test.ts'],
+  preset: "ts-jest",
+  testEnvironment: "node",
+  testMatch: ["<rootDir>/tests/**/*.test.ts"],
+  clearMocks: true,
   transform: {
-    '^.+\\.tsx?$': [
-      'ts-jest',
+    "^.+\\.tsx?$": [
+      "ts-jest",
       {
-        tsconfig: {
-          module: 'Node16',
-          moduleResolution: 'Node16',
-          esModuleInterop: true
-        }
+        tsconfig: "./tsconfig.test.json"
       }
     ]
   }

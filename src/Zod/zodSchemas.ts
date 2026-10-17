@@ -228,19 +228,23 @@ export const commonGameSchema = z.object({
 
 }).strict();
 
-export const gameSchema = z.discriminatedUnion(
-    "mode", [commonGameSchema.extend({
-        // mode user
-        mode: z.literal(modeSchema.enum.user),
-        opponentEmail: emailSchema,
-        silence: silenceSchema
-    }).strict(),
 
-    commonGameSchema.extend({
-        // mode ai
-        mode: z.literal(modeSchema.enum.ai)
-    }).strict()
-]
+export const gameSchema = z.discriminatedUnion(
+    "mode",
+    [
+        commonGameSchema.extend({
+            // mode user
+            mode: z.literal(modeSchema.enum.user),
+            opponentEmail: emailSchema,
+            silence: silenceSchema
+        }).strict(),
+
+        commonGameSchema.extend({
+            // mode ai
+            mode: z.literal(modeSchema.enum.ai),
+            silence: silenceSchema
+        }).strict()
+    ]
 );
 
 export const tokenAmountSchema = z

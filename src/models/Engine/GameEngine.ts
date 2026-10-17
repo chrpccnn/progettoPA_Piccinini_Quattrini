@@ -212,7 +212,7 @@ export class GameEngine {
         // L'azione pending è stata risolta
         game.clearPendingAction();
 
-        this.advance(game, pendingPlayer, result);
+        this.advance(game, player, result);
 
         return result;
     }
@@ -293,7 +293,7 @@ export class GameEngine {
         // Risoluzione della pending action
         game.clearPendingAction();
 
-        this.advance(game, pendingPlayer, result);
+       this.advance(game, player, result);
 
         return result;
     }
@@ -382,21 +382,26 @@ export class GameEngine {
      * Dopo la risoluzione di un'azione: se l'attacco ha distrutto
      * l'ultima nave la partita finisce, altrimenti passa il turno.
      */
-    private advance(
-        game: Game,
-        actor: IPlayer,
-        result: AttackResult | undefined
-    ): void {
-
-        if (result === AttackResult.GAME_OVER) {
-            game.end(actor);
-            return;
-        }
-
-        if (game.getState() === GameState.RUNNING) {
-            game.nextTurn();
-        }
+    
+private advance(
+    game: Game,
+    actor: IPlayer,
+    result: AttackResult | undefined
+): void {
+    if (result === AttackResult.GAME_OVER) {
+        game.end(actor);
+        return;
     }
+
+    if (game.getState() !== GameState.RUNNING) {
+        return;
+    }
+
+    // Dopo la risoluzione, il turno passa al giocatore
+    // che ha risposto all'azione pendente.
+    game.nextTurn();
+}
+
 
     private getTarget(
         countermeasure: Countermeasure

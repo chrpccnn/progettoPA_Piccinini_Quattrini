@@ -1,3 +1,4 @@
+
 import { IAction } from "../Action/IAction";
 import { Countermeasure } from "../Action/Countermeasure";
 import { Game } from "../Engine/Game";
@@ -5,15 +6,16 @@ import { GameEngine } from "../Engine/GameEngine";
 import { Fleet } from "../fleet/Fleet";
 import { IPlayer } from "./IPlayer";
 import { PlayerType } from "./PlayerType";
+import { AIStrategy } from "./AIStrategy";
 
 export class AIPlayer implements IPlayer {
-
     constructor(
         private readonly id: string,
         private readonly fleet: Fleet,
         private energy: number,
         private credits: number,
-        private readonly users: string[]
+        private readonly users: string[],
+        private readonly strategy: AIStrategy
     ) {}
 
     public getId(): string {
@@ -45,12 +47,7 @@ export class AIPlayer implements IPlayer {
         engine: GameEngine,
         action: IAction
     ): void {
-
-        engine.executeAction(
-            game,
-            this,
-            action
-        );
+        engine.executeAction(game, this, action);
     }
 
     public makeCounterMeasure(
@@ -58,39 +55,40 @@ export class AIPlayer implements IPlayer {
         engine: GameEngine,
         countermeasure: Countermeasure
     ): void {
-
-        engine.executeCountermeasure(
-            game,
-            this,
-            countermeasure
-        );
+        engine.executeCountermeasure(game, this, countermeasure);
     }
+
     public addEnergy(amount: number, max: number): void {
         if (amount < 0) {
-            throw new Error(
-                "Energy amount cannot be negative."
-            );
+            throw new Error("Energy amount cannot be negative.");
         }
 
-        this.energy = Math.min(
-            this.energy + amount,
-            max
-        );
+        this.energy = Math.min(this.energy + amount, max);
     }
 
     public spendEnergy(amount: number): void {
         if (amount <= 0) {
-            throw new Error(
-                "Energy amount must be greater than zero."
-            );
+            throw new Error("Energy amount must be greater than zero.");
         }
 
         if (this.energy < amount) {
-            throw new Error(
-                "Insufficient energy."
-            );
+            throw new Error("Insufficient energy.");
         }
 
         this.energy -= amount;
+    }
+
+    public takeStrategicTurn(
+        game: Game,
+        engine: GameEngine
+    ): void {
+        this.strategy.takeTurn(game, engine, this);
+    }
+
+    public respondToPendingAction(
+        game: Game,
+        engine: GameEngine
+    ): void {
+        this.strategy.respondToPendingAction(game, engine, this);
     }
 }

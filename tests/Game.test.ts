@@ -3,6 +3,7 @@ import { GameState } from "../src/models/Engine/GameState";
 import { Fleet } from "../src/models/fleet/Fleet";
 import { GridFactory } from "../src/models/grid/GridFactory";
 import { AIPlayer } from "../src/models/Players/AIPlayer";
+import { AIStrategy } from "../src/models/Players/AIStrategy";
 import { HumanPlayer } from "../src/models/Players/HumanPlayer";
 import { User } from "../src/models/user";
 import { TokenCost } from "../src/TokenCost";
@@ -36,16 +37,18 @@ function createHumanPlayer(
 
 function createAIPlayer(
     id: number,
-    energy = 3
+    energy: number = 3,
+    fleet?: Fleet
 ): AIPlayer {
     const playerId = String(id);
 
     return new AIPlayer(
         playerId,
-        new Fleet(playerId),
+        fleet ?? new Fleet(`fleet-${playerId}`),
         energy,
         0,
-        []
+        [],
+        new AIStrategy()
     );
 }
 
@@ -299,21 +302,5 @@ describe("Game", () => {
             ).not.toThrow();
         });
 
-        it("non deve permettere silence in una partita user-vs-AI", () => {
-            const user = createUser(1);
-
-            const player1 = createHumanPlayer(1, user);
-            const ai = createAIPlayer(2);
-
-            expect(() =>
-                createGame(
-                    [player1, ai],
-                    user,
-                    3
-                )
-            ).toThrow(
-                "Silence can only be used in a user versus user game."
-            );
-        });
     });
 });

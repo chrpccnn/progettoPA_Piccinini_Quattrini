@@ -31,6 +31,7 @@ import { IPlayer } from "../models/Players/IPlayer";
 import { PlayerType } from "../models/Players/PlayerType";
 import { User } from "../models/user";
 import { GameMode } from "../models/UserType";
+import { AIStrategy } from "../models/Players/AIStrategy";
 
 /*
  * Salva e ricarica le partite su MySQL.
@@ -349,7 +350,7 @@ class GameRepository {
                 );
             } else {
                 player = new AIPlayer(
-                    row.playerKey, fleet, row.energy, 0, []
+                    row.playerKey, fleet, row.energy, 0, [],new AIStrategy()
                 );
             }
 

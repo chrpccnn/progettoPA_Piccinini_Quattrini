@@ -20,6 +20,8 @@ import { Scan } from "../models/Action/BasicMove/Scan";
 import { GameMode } from "../models/UserType";
 
 import { TokenCost } from "../TokenCost";
+
+
 import { ActionInput, CountermeasureInput } from "../Zod/zodSchemas";
 import { IAction } from "../models/Action/IAction";
 import { GameEngine } from "../models/Engine/GameEngine";
@@ -27,6 +29,9 @@ import { Shield } from "../models/Action/BasicMove/Shield";
 import { Move } from "../models/Action/BasicMove/Move";
 import { Coordinates } from "../models/grid/Coordinates";
 import { DbTransaction } from "../repository/transaction";
+import { AIStrategy } from "../models/Players/AIStrategy";
+
+
 
 import { Countermeasure } from "../models/Action/Countermeasure";
 import { CancelAttack } from "../models/Action/Countermeasure/CancelAttack";
@@ -154,25 +159,26 @@ export class GameService {
 
             let game: Game;
 
-            if (body.mode === "ai") {
-                const aiPlayer = new AIPlayer(
-                    "player-ai-" + gameId,
-                    placeFleet("fleet-ai-" + gameId),
-                    body.energy.initial,
-                    0,
-                    []
-                );
+          if (body.mode === "ai") {
+    const aiPlayer = new AIPlayer(
+        "player-ai-" + gameId,
+        placeFleet("fleet-ai-" + gameId),
+        body.energy.initial,
+        0,
+        [],
+        new AIStrategy()
+    );
 
-                game = new Game(
-                    gameId,
-                    grid,
-                    [creatorPlayer, aiPlayer],
-                    user,
-                    0,
-                    body.energy,
-                    body.orientation
-                );
-            }
+    game = new Game(
+        gameId,
+        grid,
+        [creatorPlayer, aiPlayer],
+        user,
+        body.silence,
+        body.energy,
+        body.orientation
+    );
+}
             else {
                 const opponentPlayer = new HumanPlayer(
                     "player-" + opponent!.id + "-" + gameId,

@@ -19,6 +19,7 @@ import { Coordinates } from "../src/models/grid/Coordinates";
 import { CellState } from "../src/models/grid/Cell";
 import { User } from "../src/models/user";
 import { RadioSilence } from "../src/models/Action/Countermeasure/RadioSilance";
+import { AIStrategy } from "../src/models/Players/AIStrategy";
 
 function createUser(id: number, tokens = 1): User {
     return User.build({
@@ -56,7 +57,8 @@ function createAI(
         fleet ?? new Fleet(`fleet-${id}`),
         energy,
         0,
-        []
+        [],
+        new AIStrategy()
     );
 }
 

@@ -1,4 +1,4 @@
-import { User } from "../user";
+import { UserModel } from "./UserModel";
 
 import { GamePlayerModel } from "./GamePlayerModel";
 import { GridModel } from "./GridModel";
@@ -21,11 +21,11 @@ import { ShipPositionModel } from "./ShipPositionModel";
  */
 
 // utenti <-> partite
-User.hasMany(GameModel, { foreignKey: "creatorId", as: "createdGames", onDelete: "RESTRICT" });
-GameModel.belongsTo(User, { foreignKey: "creatorId", as: "creator" });
+UserModel.hasMany(GameModel, { foreignKey: "creatorId", as: "createdGames", onDelete: "RESTRICT" });
+GameModel.belongsTo(UserModel, { foreignKey: "creatorId", as: "creator" });
 
-User.hasMany(GamePlayerModel, { foreignKey: "userId", as: "participations", onDelete: "RESTRICT" });
-GamePlayerModel.belongsTo(User, { foreignKey: "userId", as: "user" });
+UserModel.hasMany(GamePlayerModel, { foreignKey: "userId", as: "participations", onDelete: "RESTRICT" });
+GamePlayerModel.belongsTo(UserModel, { foreignKey: "userId", as: "user" });
 
 // partita <-> giocatori
 GameModel.hasMany(GamePlayerModel, { foreignKey: "gameId", as: "players", onDelete: "CASCADE" });
@@ -56,7 +56,7 @@ GamePlayerModel.hasMany(MoveModel, { foreignKey: "gamePlayerId", as: "moves", on
 MoveModel.belongsTo(GamePlayerModel, { foreignKey: "gamePlayerId", as: "player" });
 
 export {
-    User,
+    UserModel,
     GameModel,
     GamePlayerModel,
     ShipModel,

@@ -32,7 +32,8 @@ import { PlayerType } from "../models/Players/PlayerType";
 import { User } from "../models/user";
 import { GameMode } from "../models/UserType";
 import { AIStrategy } from "../models/Players/AIStrategy";
-
+import {UserModel} from "../models/db";
+import UserRepository from "./authRepository";
 /*
  * Salva e ricarica le partite su MySQL.
  *
@@ -232,7 +233,7 @@ class GameRepository {
 
         const playerRows = await GamePlayerModel.findAll({
             where: { gameId: id },
-            include: [{ model: User, as: "user" }],
+            include: [{ model: UserModel, as: "user" }],
             order: [["slot", "ASC"]],
             transaction
         });
@@ -275,30 +276,34 @@ class GameRepository {
          * suo HumanPlayer devono condividere la stessa istanza, altrimenti
          * i TOKEN addebitati sull'una non risulterebbero sull'altra.
          */
-        const users = new Map<number, User>();
+       const users = new Map<number, User>();
 
-        for (const row of playerRows) {
-            if (row.user !== undefined && row.user !== null) {
-                users.set(row.user.id, row.user);
-            }
-        }
+for (const row of playerRows) {
+    if (
+        row.user !== undefined &&
+        row.user !== null &&
+        !users.has(row.user.id)
+    ) {
+        users.set(row.user.id, UserRepository.toDomain(row.user));
+    }
+}
 
-        let creator = users.get(gameRow.creatorId);
+let creator = users.get(gameRow.creatorId);
 
-        if (creator === undefined) {
-            const found = await User.findByPk(gameRow.creatorId, {
-                transaction
-            });
+if (creator === undefined) {
+    const found = await UserRepository.findById(
+        gameRow.creatorId,
+        transaction
+    );
 
-            if (found === null) {
-                throw new Error(
-                    `Creator of game ${id} not found.`
-                );
-            }
+    if (found === undefined) {
+        throw new Error(
+            `Creator of game ${id} not found.`
+        );
+    }
 
-            creator = found;
-        }
-
+    creator = found;
+}
         // griglia
         const grid = GridFactory.create(
             gridRow.width,
@@ -789,8 +794,8 @@ class GameRepository {
         }
 
         for (const user of users) {
-            await user.save({ transaction });
-        }
+    await UserRepository.saveTokens(user, transaction);
+}
     }
 }
 

@@ -22,7 +22,7 @@ import { RadioSilence } from "../src/models/Action/Countermeasure/RadioSilance";
 import { AIStrategy } from "../src/models/Players/AIStrategy";
 
 function createUser(id: number, tokens = 1): User {
-    return User.build({
+    return new User({
         id,
         email: `user${id}@test.com`,
         password: "password",

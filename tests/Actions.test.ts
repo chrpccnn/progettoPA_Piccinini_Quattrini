@@ -14,8 +14,8 @@ import { Coordinates } from "../src/models/grid/Coordinates";
 import { CellState } from "../src/models/grid/Cell";
 import { User } from "../src/models/user";
 
-function createUser(id: number, tokens = 10): User {
-    return User.build({
+function createUser(id: number, tokens = 1): User {
+    return new User({
         id,
         email: `user${id}@test.com`,
         password: "password",

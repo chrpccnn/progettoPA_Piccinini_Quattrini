@@ -9,7 +9,7 @@ import {
 } from "sequelize";
 import sequelize from "../../config/database";
 import { PlayerType } from "../Players/PlayerType";
-import { User } from "../user";
+import { UserModel } from "./UserModel";
 
 /*
  * Tabella "game_players": i due giocatori di una partita.
@@ -28,11 +28,11 @@ export class GamePlayerModel extends Model<
     declare playerKey: string;
     declare fleetId: string;
     declare type: PlayerType;
-    declare userId: ForeignKey<User["id"]> | null;
+    declare userId: ForeignKey<number> | null;
     declare energy: number;
     declare silenceUsed: number;
 
-    declare user?: NonAttribute<User>;
+    declare user?: NonAttribute<UserModel>;
 }
 
 GamePlayerModel.init(

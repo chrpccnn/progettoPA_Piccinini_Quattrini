@@ -14,7 +14,7 @@ import bcrypt from "bcrypt";
 import sequelize from "../config/database";
 
 import { UserRole, UserType } from "../models/UserType";
-import { User } from "../models/db";
+import { UserModel } from "../models/db";
 
 interface SeedUser {
     email: string;
@@ -67,7 +67,7 @@ async function seed(): Promise<void> {
 
     for (const item of SEED_USERS) {
 
-        const [user, created] = await User.findOrCreate({
+        const [user, created] = await UserModel.findOrCreate({
             where: { email: item.email },
             defaults: {
                 email: item.email,
@@ -80,7 +80,7 @@ async function seed(): Promise<void> {
 
         console.log(
             `${created ? "creato " : "esiste "} ${user.email} ` +
-            `(${user.role}, token ${user.getTokens()})`
+            `(${user.role}, token ${Number(user.tokens)})`
         );
     }
 }

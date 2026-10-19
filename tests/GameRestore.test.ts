@@ -9,7 +9,7 @@ import { ActionType } from "../src/models/MoveRecord";
 import { User } from "../src/models/user";
 
 function createUser(id: number, tokens: number): User {
-    return User.build({
+    return new User({
         id,
         email: `user${id}@test.com`,
         password: "password",

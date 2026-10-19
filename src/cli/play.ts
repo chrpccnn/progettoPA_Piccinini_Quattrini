@@ -55,8 +55,7 @@ import { HumanPlayer } from "../models/Players/HumanPlayer";
 import { IPlayer } from "../models/Players/IPlayer";
 import { PlayerType } from "../models/Players/PlayerType";
 
-import { User, UserCreationAttributes } from "../models/user";
-import { UserRole } from "../models/UserType";
+
 
 import { Prompt } from "./prompt";
 import {
@@ -69,6 +68,8 @@ import {
     renderLayers
 } from "./render";
 import { ActionType } from "../models/MoveRecord";
+import { User } from "../models/user";
+import { UserRole } from "../models/UserType";
 
 const INITIAL_TOKENS = 10;
 const ENERGY: EnergyConfig = { ...DEFAULT_ENERGY_CONFIG };
@@ -121,13 +122,16 @@ function notify(
     s.notices.set(player, messages);
 }
 
+let nextUserId = 1;
+
 function makeUser(email: string): User {
-    return User.build({
+    return new User({
+        id: nextUserId++,
         email,
         password: "cli-password",
-        role: UserRole.USER,
+        role: "user",
         tokens: INITIAL_TOKENS
-    } as unknown as UserCreationAttributes);
+    });
 }
 
 async function askOrientations(

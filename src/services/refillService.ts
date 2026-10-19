@@ -1,3 +1,4 @@
+
 import { ErrorFactory } from "../errors/ErrorFactory";
 import UserRepository from "../repository/authRepository";
 import { MailSchema } from "../Zod/zodSchemas";
@@ -8,8 +9,14 @@ export class RefillService {
         email: MailSchema,
         tokens: number
     ) {
+        const user = await UserRepository.findByEmail(email);
+
+        if (!user) {
+            throw ErrorFactory.userNotFound();
+        }
+
         const updated = await UserRepository.incrementTokens(
-            email,
+            user.id,
             tokens
         );
 

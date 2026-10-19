@@ -9,7 +9,7 @@ import { User } from "../src/models/user";
 import { TokenCost } from "../src/TokenCost";
 
 function createUser(id: number, tokens = 1): User {
-    return User.build({
+    return new User({
         id,
         email: `user${id}@test.com`,
         password: "password",

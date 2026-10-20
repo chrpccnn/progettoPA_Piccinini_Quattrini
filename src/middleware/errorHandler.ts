@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { AppError } from "../errors/appError";
+const { status } = require("http-status");
 
 export const errorHandler = (
     err: Error,
@@ -16,7 +17,7 @@ export const errorHandler = (
         return;
     }
     
-    res.status(500).json({
+    res.status(status.INTERNAL_SERVER_ERROR).json({
         error: "Errore interno del server"
     });
 };

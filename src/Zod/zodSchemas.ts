@@ -241,8 +241,7 @@ export const gameSchema = z.discriminatedUnion(
 
         commonGameSchema.extend({
             // mode ai
-            mode: z.literal(modeSchema.enum.ai),
-            silence: silenceSchema
+            mode: z.literal(modeSchema.enum.ai)
         }).strict()
     ]
 );

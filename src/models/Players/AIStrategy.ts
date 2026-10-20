@@ -1,13 +1,11 @@
 
 import { IAction } from "../Action/IAction";
-import { Countermeasure } from "../Action/Countermeasure";
 import { Attack } from "../Action/BasicMove/Attack";
 import { Move } from "../Action/BasicMove/Move";
 import { Scan } from "../Action/BasicMove/Scan";
 import { Shield } from "../Action/BasicMove/Shield";
 import { AlterScan } from "../Action/Countermeasure/AlterScan";
 import { CancelAttack } from "../Action/Countermeasure/CancelAttack";
-import { RadioSilence } from "../Action/Countermeasure/RadioSilance";
 import { Game } from "../Engine/Game";
 import { GameEngine } from "../Engine/GameEngine";
 import { GameState } from "../Engine/GameState";
@@ -318,21 +316,6 @@ export class AIStrategy {
         const energy = player.getEnergy();
 
         if (pending instanceof Attack) {
-            const canSilence =
-                energy >= 2 &&
-                game.canUseSilence(player);
-
-            // Radio Silence evita che l'avversario conosca l'esito.
-            // La probabilità lascia spazio anche a CancelAttack e PASS.
-            if (canSilence && Math.random() < 0.30) {
-                player.makeCounterMeasure(
-                    game,
-                    engine,
-                    new RadioSilence(pending)
-                );
-                return;
-            }
-
             if (energy >= 2 && Math.random() < 0.45) {
                 player.makeCounterMeasure(
                     game,

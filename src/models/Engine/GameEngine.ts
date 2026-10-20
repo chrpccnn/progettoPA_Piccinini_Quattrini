@@ -212,7 +212,7 @@ export class GameEngine {
         // L'azione pending è stata risolta
         game.clearPendingAction();
 
-        this.advance(game, player, result);
+        this.advance(game, pendingPlayer, result);
 
         return result;
     }
@@ -293,7 +293,7 @@ export class GameEngine {
         // Risoluzione della pending action
         game.clearPendingAction();
 
-       this.advance(game, player, result);
+       this.advance(game, pendingPlayer, result);
 
         return result;
     }

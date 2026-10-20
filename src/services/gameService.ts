@@ -32,12 +32,12 @@ import { DbTransaction } from "../repository/transaction";
 import { AIStrategy } from "../models/Players/AIStrategy";
 
 
-
 import { Countermeasure } from "../models/Action/Countermeasure";
 import { CancelAttack } from "../models/Action/Countermeasure/CancelAttack";
 import { AlterScan } from "../models/Action/Countermeasure/AlterScan";
 import { RadioSilence } from "../models/Action/Countermeasure/RadioSilance";
 import { CountermeasureType } from "../models/Action/Countermeasure/CountermeasureType";
+import { GameState } from "../models/Engine/GameState";
 
 export class GameService {
 
@@ -159,26 +159,26 @@ export class GameService {
 
             let game: Game;
 
-          if (body.mode === "ai") {
-    const aiPlayer = new AIPlayer(
-        "player-ai-" + gameId,
-        placeFleet("fleet-ai-" + gameId),
-        body.energy.initial,
-        0,
-        [],
-        new AIStrategy()
-    );
+            if (body.mode === "ai") {
+                const aiPlayer = new AIPlayer(
+                    "player-ai-" + gameId,
+                    placeFleet("fleet-ai-" + gameId),
+                    body.energy.initial,
+                    0,
+                    [],
+                    new AIStrategy()
+                );
 
-    game = new Game(
-        gameId,
-        grid,
-        [creatorPlayer, aiPlayer],
-        user,
-        body.silence,
-        body.energy,
-        body.orientation
-    );
-}
+                game = new Game(
+                    gameId,
+                    grid,
+                    [creatorPlayer, aiPlayer],
+                    user,
+                    0,
+                    body.energy,
+                    body.orientation
+                );
+            }
             else {
                 const opponentPlayer = new HumanPlayer(
                     "player-" + opponent!.id + "-" + gameId,
@@ -393,7 +393,7 @@ export class GameService {
 
                     throw error;
                 }
-
+                GameService.handleAI(game, engine);
                 await GameRepository.update(
                     game,
                     transaction
@@ -542,7 +542,7 @@ export class GameService {
 
                     throw error;
                 }
-
+                GameService.handleAI(game, engine);
                 await GameRepository.update(
                     game,
                     transaction
@@ -628,7 +628,7 @@ export class GameService {
 
                     throw error;
                 }
-
+                GameService.handleAI(game, engine);
                 await GameRepository.update(
                     game,
                     transaction
@@ -774,8 +774,8 @@ export class GameService {
 
             case "MOVE": {
                 const ship = player
-                        .getFleet()
-                        .getShipById(body.shipId);
+                    .getFleet()
+                    .getShipById(body.shipId);
 
                 if (!ship) {
                     throw ErrorFactory.badRequest("Ship not found in player's fleet");
@@ -822,4 +822,51 @@ export class GameService {
             }
         }
     }
+
+    private static handleAI(
+    game: Game,
+    engine: GameEngine
+): void {
+
+    const aiPlayer = game
+        .getPlayers()
+        .find(
+            (player): player is AIPlayer =>
+                player instanceof AIPlayer
+        );
+
+    // Partita PvP
+    if (!aiPlayer) {
+        return;
+    }
+
+    // Partita già conclusa
+    if (game.getState() !== GameState.RUNNING) {
+        return;
+    }
+
+    if (
+        game.hasPendingAction() &&
+        game.getPendingActionPlayer() !== aiPlayer
+    ) {
+        aiPlayer.respondToPendingAction(
+            game,
+            engine
+        );
+    }
+
+    if (game.getState() !== "RUNNING") {
+        return;
+    }
+
+    if (
+        !game.hasPendingAction() &&
+        game.getCurrentPlayer() === aiPlayer
+    ) {
+        aiPlayer.takeStrategicTurn(
+            game,
+            engine
+        );
+    }
+}
 }

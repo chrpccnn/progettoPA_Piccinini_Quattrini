@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import UserRepository from "../repository/authRepository";
 import { ErrorFactory } from "../errors/ErrorFactory";
+import { getPrivateKey } from "../jwtKey";
 
 export class AuthService {
     static async register(email: string, plainPassword: string) {
@@ -31,16 +32,17 @@ export class AuthService {
             throw ErrorFactory.invalidCredentials();
         }
         
-        const secret = process.env.JWT_SECRET;
-
-        if (!secret) {
-            throw new Error("JWT_SECRET is not configured");
-        }
-        
         const token = jwt.sign(
-            { id: existingUser.id, email: existingUser.email, role: existingUser.role },
-            secret,
-            { expiresIn: '2h' }
+        {
+            id: existingUser.id,
+            email: existingUser.email,
+            role: existingUser.role
+        },
+        getPrivateKey(),
+        {
+            algorithm: "RS256",
+            expiresIn: "2h"
+        }
         );
 
         return {

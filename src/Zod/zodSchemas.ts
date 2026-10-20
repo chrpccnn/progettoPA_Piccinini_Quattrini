@@ -248,8 +248,7 @@ export const gameSchema = z.discriminatedUnion(
 );
 
 export const tokenAmountSchema = z
-    .number()
-    .nonnegative();
+    .number();
 
 export const refillSchema = z.object({
     email: emailSchema,

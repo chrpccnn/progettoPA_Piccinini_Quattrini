@@ -1,4 +1,4 @@
-FROM node:lts-stretch-slim AS build
+FROM node:24 AS build
 
 WORKDIR /app
 

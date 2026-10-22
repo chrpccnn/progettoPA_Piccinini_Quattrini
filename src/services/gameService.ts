@@ -148,9 +148,113 @@ export class GameService {
                 }
             };
 
+            const placeCreatorFleet = (
+                fleetId: string
+            ): Fleet => {
+                try {
+                    const fleet = new Fleet(fleetId);
+                    const occupied = new Set<Coordinates>();
+                    const configurations = [
+                        {
+                            type: ShipType.MOTHER_SHIP,
+                            total: body.ships.motherShip,
+                            placements: body.placements.motherShip
+                        },
+                        {
+                            type: ShipType.CRUISER,
+                            total: body.ships.cruiser,
+                            placements: body.placements.cruiser
+                        },
+                        {
+                            type: ShipType.SCOUT,
+                            total: body.ships.scout,
+                            placements: body.placements.scout
+                        },
+                        {
+                            type: ShipType.DRONE,
+                            total: body.ships.drone,
+                            placements: body.placements.drone
+                        }
+                    ];
+
+                    for (const config of configurations) {
+                        for (
+                            let i = 0;
+                            i < config.placements.length;
+                            i++
+                        ) {
+
+                            const placement =
+                                config.placements[i];
+
+                            if (
+                                !body.orientation.includes(
+                                    placement.orientation
+                                )
+                            ) {
+                                throw new Error(
+                                    "Orientation not allowed"
+                                );
+                            }
+
+                            const ship = FleetFactory.shipAt(
+                                `${fleetId}-${config.type}-${i + 1}`,
+                                config.type,
+                                Coordinates.create(
+                                    placement.x,
+                                    placement.y,
+                                    placement.z
+                                ),
+                                placement.orientation,
+                                grid,
+                                occupied
+                            );
+
+                            fleet.addShip(ship);
+
+                            ship.getPositions().forEach(
+                                position => occupied.add(position)
+                            );
+                        }
+                    }
+
+                    for (const config of configurations) {
+                        for (
+                            let n =
+                                config.placements.length + 1;
+                            n <= config.total;
+                            n++
+                        ) {
+
+                            const ship =
+                                FleetFactory.placeRandom(
+                                    `${fleetId}-${config.type}-${n}`,
+                                    config.type,
+                                    grid,
+                                    body.orientation,
+                                    occupied,
+                                    Math.random
+                                );
+
+                            fleet.addShip(ship);
+                        }
+                    }
+
+                    return fleet;
+
+                } catch (error) {
+
+                    throw ErrorFactory.badRequest(
+                        error instanceof Error
+                            ? error.message
+                            : "Invalid fleet configuration"
+                    );
+                }
+            };
+
             const creatorPlayer = new HumanPlayer(
                 "player-" + user.id + "-" + gameId,
-                placeFleet("fleet-" + user.id + "-" + gameId),
+                placeCreatorFleet("fleet-" + user.id + "-" + gameId),
                 body.energy.initial,
                 0,
                 [],
@@ -824,49 +928,49 @@ export class GameService {
     }
 
     private static handleAI(
-    game: Game,
-    engine: GameEngine
-): void {
+        game: Game,
+        engine: GameEngine
+    ): void {
 
-    const aiPlayer = game
-        .getPlayers()
-        .find(
-            (player): player is AIPlayer =>
-                player instanceof AIPlayer
-        );
+        const aiPlayer = game
+            .getPlayers()
+            .find(
+                (player): player is AIPlayer =>
+                    player instanceof AIPlayer
+            );
 
-    // Partita PvP
-    if (!aiPlayer) {
-        return;
+        // Partita PvP
+        if (!aiPlayer) {
+            return;
+        }
+
+        // Partita già conclusa
+        if (game.getState() !== GameState.RUNNING) {
+            return;
+        }
+
+        if (
+            game.hasPendingAction() &&
+            game.getPendingActionPlayer() !== aiPlayer
+        ) {
+            aiPlayer.respondToPendingAction(
+                game,
+                engine
+            );
+        }
+
+        if (game.getState() !== "RUNNING") {
+            return;
+        }
+
+        if (
+            !game.hasPendingAction() &&
+            game.getCurrentPlayer() === aiPlayer
+        ) {
+            aiPlayer.takeStrategicTurn(
+                game,
+                engine
+            );
+        }
     }
-
-    // Partita già conclusa
-    if (game.getState() !== GameState.RUNNING) {
-        return;
-    }
-
-    if (
-        game.hasPendingAction() &&
-        game.getPendingActionPlayer() !== aiPlayer
-    ) {
-        aiPlayer.respondToPendingAction(
-            game,
-            engine
-        );
-    }
-
-    if (game.getState() !== "RUNNING") {
-        return;
-    }
-
-    if (
-        !game.hasPendingAction() &&
-        game.getCurrentPlayer() === aiPlayer
-    ) {
-        aiPlayer.takeStrategicTurn(
-            game,
-            engine
-        );
-    }
-}
 }

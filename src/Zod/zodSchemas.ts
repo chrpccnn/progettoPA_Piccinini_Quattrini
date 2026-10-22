@@ -116,6 +116,16 @@ export const shipSchema = z.object({
 
 }).strict();
 
+export const shipPositionSchema = z.object({
+
+    x: z.number().int().nonnegative(),
+    y: z.number().int().nonnegative(),
+    z: z.number().int().nonnegative(),
+
+    orientation: z.enum(Orientation)
+
+}).strict();
+
 export const orientationSchema = z
     .array(
         z.enum(Orientation)
@@ -136,6 +146,25 @@ export const coordinatesSchema = z.object({
     z: z.number().int()
 }).strict();
 
+export const shipPlacementSchema = z.object({
+
+    motherShip: z
+        .array(shipPositionSchema)
+        .default([]),
+
+    cruiser: z
+        .array(shipPositionSchema)
+        .default([]),
+
+    scout: z
+        .array(shipPositionSchema)
+        .default([]),
+
+    drone: z
+        .array(shipPositionSchema)
+        .default([])
+
+}).strict();
 
 export const actionSchema = z.discriminatedUnion(
     "type",
@@ -222,12 +251,62 @@ export const commonGameSchema = z.object({
 
     ships: shipSchema.prefault({}),
 
+    placements: shipPlacementSchema.prefault({}),
+
     orientation: orientationSchema,
 
     energy: energySchema.prefault({})
 
-}).strict();
+}).superRefine((data, ctx) => {
 
+    if (
+        data.placements.motherShip.length >
+        data.ships.motherShip
+    ) {
+        ctx.addIssue({
+            code: "custom",
+            path: ["placements", "motherShip"],
+            message:
+                `Cannot place more than ${data.ships.motherShip} MotherShip`
+        });
+    }
+
+    if (
+        data.placements.cruiser.length >
+        data.ships.cruiser
+    ) {
+        ctx.addIssue({
+            code: "custom",
+            path: ["placements", "cruiser"],
+            message:
+                `Cannot place more than ${data.ships.cruiser} Cruiser`
+        });
+    }
+
+    if (
+        data.placements.scout.length >
+        data.ships.scout
+    ) {
+        ctx.addIssue({
+            code: "custom",
+            path: ["placements", "scout"],
+            message:
+                `Cannot place more than ${data.ships.scout} Scout`
+        });
+    }
+
+    if (
+        data.placements.drone.length >
+        data.ships.drone
+    ) {
+        ctx.addIssue({
+            code: "custom",
+            path: ["placements", "drone"],
+            message:
+                `Cannot place more than ${data.ships.drone} Drone`
+        });
+    }
+})
 
 export const gameSchema = z.discriminatedUnion(
     "mode",

@@ -3,9 +3,12 @@ import authMiddleware from "../middleware/authMiddleware";
 import { roleMiddleware } from "../middleware/roleMiddleware";
 import { createGame, getGameState, makeAction, makeCountermeasure, passTurn, getHistory } from "../controllers/gameController";
 import gameValidatorMiddleware from "../middleware/gameValuesMiddleware"
+import gameActionMiddleware from "../middleware/gameActionMiddleware"
+import gameCountermeasuresMiddleware from "../middleware/gameCountermeasuresMiddleware";
 
 const router = Router();
 
+// per ogni rotta sottostante controlla che l'utente sia autenticato e un utente "user"
 router.use(
     authMiddleware,
     roleMiddleware("user")
@@ -27,13 +30,15 @@ router.get(
 // esegue una delle azioni possibili
 router.post(
     "/:gameId/action",
+    gameActionMiddleware,
     makeAction,
 );
 
 
-// esegue una delle contro-azioni (da trovare un nome migliore) possibili
+// esegue una delle contromosse possibili
 router.post(
     "/:gameId/countermeasure",
+    gameCountermeasuresMiddleware,
     makeCountermeasure,
 );
 

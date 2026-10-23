@@ -6,6 +6,8 @@ import { getPrivateKey } from "../jwtKey";
 
 export class AuthService {
     static async register(email: string, plainPassword: string) {
+        // Registra che la mail non sia già registrata, la cripta e crea un nuovo utente tramite repository
+
         const existingUser = await UserRepository.findByEmail(email);
         if (existingUser) {
             throw ErrorFactory.userAlreadyExists();
@@ -19,11 +21,13 @@ export class AuthService {
             email: newUser.email,
             role: newUser.role,
         };
-    }  
+    }
 
-    static async login(email: string, plainPassword: string){
+    static async login(email: string, plainPassword: string) {
+        // cerca l'utente nel database, controlla che la password sia corretta, 
+        // crea il JWT tramite chiave privata e ritorna i dati
         const existingUser = await UserRepository.findByEmail(email);
-        if(!existingUser){
+        if (!existingUser) {
             throw ErrorFactory.invalidCredentials();
         }
 
@@ -31,28 +35,27 @@ export class AuthService {
         if (!isPasswordValid) {
             throw ErrorFactory.invalidCredentials();
         }
-        
+
         const token = jwt.sign(
-        {
-            id: existingUser.id,
-            email: existingUser.email,
-            role: existingUser.role
-        },
-        getPrivateKey(),
-        {
-            algorithm: "RS256",
-            expiresIn: "2h"
-        }
+            {
+                id: existingUser.id,
+                email: existingUser.email,
+                role: existingUser.role
+            },
+            getPrivateKey(),
+            {
+                algorithm: "RS256",
+                expiresIn: "2h"
+            }
         );
 
         return {
-        token,
-        user: {
-            id: existingUser.id,
-            email: existingUser.email,
-            role: existingUser.role,
-        },
-    };
-
+            token,
+            user: {
+                id: existingUser.id,
+                email: existingUser.email,
+                role: existingUser.role,
+            },
+        };
     }
 }

@@ -21,6 +21,7 @@ class UserRepository {
         });
     }
 
+    /**Find database row through email */
     async findByEmail(
         email: string,
         transaction?: Transaction
@@ -30,6 +31,7 @@ class UserRepository {
         return row === null ? undefined : this.toDomain(row);
     }
 
+    /**Find database row through Id */
     async findById(
         id: number,
         transaction?: Transaction
@@ -58,6 +60,7 @@ class UserRepository {
         return rows.map(row => this.toDomain(row));
     }
 
+    /**Create a new User in database*/
     async createNewUser(
         email: string,
         passwordHash: string
@@ -74,6 +77,7 @@ class UserRepository {
     /*
      * L'unico dato di un utente che cambia durante il gioco e' il saldo.
      */
+    /**Change token's database row for each turn */
     async saveTokens(
         user: User,
         transaction?: Transaction
@@ -83,26 +87,28 @@ class UserRepository {
             { where: { id: user.id }, transaction }
         );
     }
+
+    
     async incrementTokens(
-    userId: number,
-    amount: number,
-    transaction?: Transaction
-): Promise<User | undefined> {
-    const row = await UserModel.findByPk(userId, { transaction });
+        userId: number,
+        amount: number,
+        transaction?: Transaction
+    ): Promise<User | undefined> {
+        const row = await UserModel.findByPk(userId, { transaction });
 
-    if (row === null) {
-        return undefined;
+        if (row === null) {
+            return undefined;
+        }
+
+        await row.increment("tokens", {
+            by: amount,
+            transaction
+        });
+
+        await row.reload({ transaction });
+
+        return this.toDomain(row);
     }
-
-    await row.increment("tokens", {
-        by: amount,
-        transaction
-    });
-
-    await row.reload({ transaction });
-
-    return this.toDomain(row);
-}
 }
 
 

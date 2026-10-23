@@ -3,7 +3,7 @@ import { getHome } from "../controllers/indexController";
 
 
 const router = Router();
-
+// rimanda al messaggio base
 router.get("/", getHome);
 
 

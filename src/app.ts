@@ -14,11 +14,16 @@ app.use(express.json());
 // Middleeare globale, eseguito ad ogni rotta
 app.use(logger);
 
+// Rotta di test
 app.use("/", router);
+// Rotte di autenticazione
 app.use("/auth", authRoutes);
+// Rotte di gioco
 app.use("/game", gameRoutes);
+// Rotta dedicata al refill
 app.use("/refill", adminRoutes);
 
+// Errore di rotta
 app.use((req, res) => {
     res.status(404).json({
         error: "Route not found"

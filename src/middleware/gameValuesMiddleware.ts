@@ -7,6 +7,7 @@ export default function gameValidatorMiddleware(
   res: Response,
   next: NextFunction
 ){
+    // verifica che il json sia impostato correttamente tramite zod
     try{
         req.body = gameSchema.parse(req.body);
         next();

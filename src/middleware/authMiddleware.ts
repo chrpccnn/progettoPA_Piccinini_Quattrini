@@ -14,6 +14,7 @@ export default function authMiddleware(
     res: Response,
     next: NextFunction
 ) {
+    // Estrae i dati dalla richiesta, divide il jwt e verifica che sia corretto
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {

@@ -1,438 +1,1128 @@
-# Sistema multi-utente per il rilevamento di attacchi di rete basato su architettura client-server
+# Progetto Programmazione Avanzata — Space Battleship 3D
 
-Il sistema sviluppato si inserisce in un contesto applicativo in cui è necessario monitorare il traffico di rete per individuare possibili attività sospette. Nell’infrastruttura ipotizzata, il client invia richieste al backend contenenti feature estratte da flussi di rete (ad esempio sorgente, volume, dimensione dei pacchetti e segnali di anomalie come SYN flood), mentre il server applica procedure di controllo, verifica le credenziali e valuta il rischio associato al traffico.
+Backend REST sviluppato per il corso di **Programmazione Avanzata**.
 
-## 🧠 Obiettivo del progetto
+**Repository principale:**  
+https://github.com/chrpccnn/progettoPA_Piccinini_Quattrini/tree/main
 
-Il presente progetto simula tale scenario attraverso l’impiego di un’architettura client-server, all’interno della quale il client invia al backend richieste contenenti feature estratte dal traffico di rete, come:
+## Indice
 
-- `sourceIP`, ovvero l’indirizzo sorgente del traffico, che identifica l’host che genera i pacchetti;
-- `packets`, cioè il numero dei pacchetti inviati in un intervallo di tempo specifico, utile per individuare il volume di traffico anomalo;
-- `bytes`, ovvero la quantità totale di bytes trasmessi nella comunicazione tra client e service;
-- `synPacketsCount`, cioè il numero di pacchetti TCP con flag `SYN`, rilevante per individuare attacchi `SYN Flood`.
+1. [Obiettivo](#1-obiettivo)
+2. [Tecnologie utilizzate e struttura](#2-tecnologie-utilizzate-e-struttura)
+3. [Regole del gioco](#3-regole-del-gioco)
+4. [Diagrammi e rotte](#4-diagrammi-e-rotte)
+5. [Pattern](#5-pattern-utilizzati)
+6. [Installazione](#6-installazione)
 
-Il backend riceve le richieste tramite API REST sviluppate con Node.js, Express e TypeScript, verifica autenticazione e autorizzazione mediante token JWT, poi valida i dati ricevuti e avvia la logica di analisi del traffico. Sulla base di regole predefinite, il sistema classifica il flusso come benigno o sospetto, applicando decisioni di tipo accesso consentito, warning o blocco.
+---
 
-Il traffico viene classificato tramite un approccio rule-based, basato su regole e soglie predefinite, distinguendo tra:
+# 1. Obiettivo
 
-- traffico benigno;
-- attacchi DoS;
-- tentativi di brute force.
+L'obiettivo del progetto è la realizzazione di un backend REST per **Space Battleship 3D**, una variante tridimensionale della battaglia navale.
 
-Sulla base della classificazione ottenuta, il sistema produce una decisione operativa tra:
+Il sistema permette a utenti autenticati tramite JWT di creare e giocare partite:
 
-- consentire la richiesta;
-- generare un avviso;
-- applicare un blocco temporaneo;
-- applicare un blocco permanente.
+- **utente contro utente**;
+- **utente contro IA**.
 
-Il sistema include inoltre una componente di persistenza dei dati basata sull’utilizzo di database relazionale esterno, interfacciato mediante Sequelize, così da memorizzare le analisi effettuate e le informazioni di stato del sistema.
+Ogni partita viene giocata su una griglia tridimensionale e comprende:
 
-Le informazioni salvate possono essere consultate attraverso rotte protette riservate agli utenti amministratori.
+- posizionamento casuale delle flotte;
+- gestione dei turni;
+- Energy Credits;
+- TOKEN economici associati agli utenti;
+- azioni principali;
+- contromisure;
+- persistenza dello stato di gioco;
+- storico delle mosse in formato CSV;
+- autenticazione e autorizzazione tramite ruoli `user` e `admin`.
 
-## ⚙️ Strumenti per lo sviluppo
+L'applicazione separa il livello HTTP dalla logica applicativa, dal dominio di gioco e dalla persistenza, così da mantenere il codice modulare e testabile.
 
-- Node.js
-- Express
-- TypeScript
-- Sequelize
-- SQLite / MySQL
-- JWT
-- Docker
-- Jest
-- Postman
-- Diagrammi UML
+# 2. Tecnologie utilizzate e struttura
 
-## 📌 Aggiornamenti recenti
+## 2.1 Tecnologie
 
-Nel corso dello sviluppo abbiamo consolidato la struttura del backend, ampliato la logica applicativa e migliorato in modo concreto la parte di autenticazione e gestione delle API. In particolare, i recenti avanzamenti includono:
+Il progetto utilizza:
 
-- introduzione dell’autenticazione con chiave RSA e token JWT firmati con algoritmo `RS256`, con verifica della firma tramite chiave pubblica;
-- miglioramento della gestione degli stati HTTP e delle risposte REST per le azioni dell’AI, con comportamento più chiaro e più robusto in caso di errori;
-- aggiunta della logica di posizionamento manuale delle navi, utile per testare scenari più realistici e controllati;
-- aggiornamento della documentazione dei diagrammi, dei flussi delle API e della struttura del dominio applicativo;
-- consolidamento della CLI come strumento rapido per verificare la logica di gioco senza dover partire da un client esterno.
+- **Node.js** — runtime JavaScript;
+- **TypeScript** — linguaggio principale;
+- **Express** — realizzazione delle API REST;
+- **Sequelize** — ORM;
+- **MySQL 8** — database relazionale;
+- **Docker / Docker Compose** — containerizzazione;
+- **Zod** — validazione runtime degli input e derivazione dei tipi TypeScript;
+- **jsonwebtoken** — autenticazione JWT;
+- **bcrypt** — hashing delle password;
+- **dotenv** — gestione delle variabili d'ambiente;
+- **Jest** — test;
+- **Supertest** — test delle API HTTP.
 
-Questi cambiamenti sono coerenti con l’architettura adottata: il dominio resta isolato da HTTP e database, mentre i controller, i service e la repository gestiscono i punti di contatto tra il sistema e il mondo esterno. La CLI, in particolare, continua a risultare utile per validare rapidamente la logica del motore e del gioco prima di passare a test più complessi o all’uso da parte di un client reale.
+## 2.2 Struttura del progetto
 
-## 🧭 Diagrammi UML
-
-### Diagramma dei casi d'uso
-
-<img src="./Sequence Diagrams/casiduso.png" alt="Diagramma dei casi d'uso" width="900" />
-
-### Diagramma delle classi
-
-```mermaid
-classDiagram
-    class User {
-      +id: number
-      +username: string
-      +passwordHash: string
-      +role: string
-    }
-
-    class AuthService {
-      +login(username, password): Token
-      +register(userData): User
-      +verifyToken(token): Payload
-    }
-
-    class JwtMiddleware {
-      +authenticate(req, res, next)
-      +authorize(role, req, res, next)
-    }
-
-    class AuthController {
-      +login(req, res)
-      +register(req, res)
-    }
-
-    class GameController {
-      +createGame(req, res)
-      +getGameState(req, res)
-      +executeAction(req, res)
-    }
-
-    class GameService {
-      +createGame()
-      +getState()
-      +executeAction(action)
-      +restoreGame()
-    }
-
-    class GameEngine {
-      +executeMove(action)
-      +applyCountermeasure(action)
-      +resolveTurn()
-    }
-
-    class Player {
-      +name: string
-      +type: PlayerType
-      +energy: number
-    }
-
-    class HumanPlayer
-    class AIPlayer
-
-    class AIStrategy {
-      +chooseAction(gameState): Action
-    }
-
-    class FleetFactory {
-      +buildFleet(): Fleet
-    }
-
-    class GridFactory {
-      +buildGrid(): Grid
-    }
-
-    class GameRepository {
-      +save(game)
-      +findById(id)
-      +update(game)
-    }
-
-    class GameModel
-    class UserModel
-
-    classDef app fill:#f8fafc,stroke:#334155,stroke-width:1.2px,color:#0f172a;
-    classDef core fill:#e0f2fe,stroke:#0284c7,stroke-width:1.2px,color:#082f49;
-    classDef domain fill:#dcfce7,stroke:#16a34a,stroke-width:1.2px,color:#14532d;
-    classDef data fill:#ede9fe,stroke:#7c3aed,stroke-width:1.2px,color:#4c1d95;
-
-    class AuthService,AuthController,GameController,GameService,JwtMiddleware app;
-    class GameEngine,Player,HumanPlayer,AIPlayer,AIStrategy,FleetFactory,GridFactory core;
-    class User,GameRepository,GameModel,UserModel data;
-    class GameService --> GameEngine
-    class GameEngine --> Player
-    class HumanPlayer --> GameEngine
-    class AIPlayer --> AIStrategy
-    class FleetFactory --> GridFactory
-    class AuthController --> AuthService
-    class GameController --> GameService
-    class JwtMiddleware --> AuthController
-    class GameService --> GameRepository
-    class GameRepository --> GameModel
-    class AuthService --> UserModel
-    class User --> UserModel
+```text
+progettoPA_Piccinini_Quattrini/
+├── src/
+│   ├── cli/                  # CLI testuale per testare il dominio
+│   ├── config/               # configurazione database
+│   ├── controllers/          # gestione richieste HTTP
+│   ├── errors/               # AppError ed ErrorFactory
+│   ├── middleware/           # auth, ruoli, logger, error handler
+│   ├── models/
+│   │   ├── Action/           # azioni e contromisure
+│   │   ├── Engine/           # Game, GameEngine, EnergyConfig, HistoryCsv
+│   │   ├── Players/          # HumanPlayer e AIPlayer
+│   │   ├── db/               # model Sequelize
+│   │   ├── fleet/            # Fleet, Ship, FleetConfig, FleetFactory
+│   │   └── grid/             # griglia, celle e coordinate
+│   ├── repository/           # accesso ai dati e mapping DB <-> dominio
+│   ├── routes/               # route REST
+│   ├── seeds/                # inizializzazione database
+│   ├── services/             # logica applicativa
+│   ├── Zod/                  # schema di validazione
+│   ├── TokenCost.ts
+│   ├── app.ts
+│   └── server.ts
+├── tests/
+├── Sequence Diagrams/
+├── Dockerfile
+├── docker-compose.yaml
+├── package.json
+└── README.md
 ```
 
-### Diagramma di sequenza
+La cartella `dist/` viene generata durante la compilazione TypeScript e non contiene codice da modificare manualmente.
 
-La seguente tabella riassume le principali caratteristiche delle rotte del sistema.
+## 2.3 Architettura
 
-| Metodo | Endpoint | Descrizione | Autenticazione | Gestore richiesta HTTP |
-| |---|---|---|---|
-| POST | `/api/auth/login` | Verifica le credenziali dell'utente e genera un token JWT | No | `AuthController` |
-| POST | `/api/detection` | Riceve i dati di traffico e ne restituisce la classificazione e la decisione | No | `DetectionController` |
-| GET | `/api/admin/statistics` | Restituisce lo stato delle IP monitorate e lo stato di blocco | JWT | `AdminController` |
-| GET | `/api/admin/analysis` | Restituisce l'elenco delle analisi memorizzate | JWT | `AdminController` |
-| DELETE | `/api/admin/cache` | Svuota la cache del sistema | JWT | `AdminController` |
+Il flusso generale di una richiesta REST è:
 
-### Sequenza: login
+```text
+Client / Postman
+       |
+       v
+     Route
+       |
+       v
+   Middleware
+       |
+       v
+   Controller
+       |
+       v
+    Service
+       |
+       +--------> Domain / GameEngine
+       |
+       v
+   Repository
+       |
+       v
+   Sequelize
+       |
+       v
+     MySQL
+```
 
-<img src="./Sequence Diagrams/SD login.png" alt="Diagramma di sequenza login" width="900" />
+Le responsabilità sono separate:
 
-### Sequenza: creazione partita / analisi principale
-
-<img src="./Sequence Diagrams/SD game.png" alt="Diagramma di sequenza creazione partita" width="900" />
-
-### Sequenza: azione / movimento
-
-<img src="./Sequence Diagrams/SD action.png" alt="Diagramma di sequenza azione" width="900" />
-
-### Sequenza: contromisura
-
-<img src="./Sequence Diagrams/SD countermeasure.png" alt="Diagramma di sequenza contromisura" width="900" />
-
-### Sequenza: stato e storicizzazione
-
-<img src="./Sequence Diagrams/SD state.png" alt="Diagramma di sequenza stato" width="900" />
-
-<img src="./Sequence Diagrams/SD history.png" alt="Diagramma di sequenza storico" width="900" />
-
-### Sequenza di alta qualità / overview
-
-<img src="./Sequence Diagrams/3D BATTLESHIP-2026-10-23-101904.png" alt="Overview layout del sistema" width="900" />
-
----
-
-## 🔐 Rotta `/api/auth/login`
-
-Questa rotta autentica l’utente verificando username e password forniti. Se le credenziali inserite sono corrette, il server genera e restituisce un token JWT. Nella collection Postman è stato definito il payload di login e la chiave pubblica usata per la verifica del token, con supporto all’algoritmo RSA (`RS256`).
-
-Il flusso è il seguente:
-
-1. il client invia una richiesta `POST /api/auth/login` con `username` e `password`;
-2. la richiesta viene intercettata da `authRoutes`, che la inoltra a `AuthController`;
-3. `AuthController` richiama `AuthService`;
-4. `AuthService` usa il repository per verificare l’utente nel database;
-5. se le credenziali sono valide, viene generato un JWT firmato con chiave RSA;
-6. il server restituisce `200 OK` con il token e il client lo usa nelle richieste successive come header `Authorization`.
-
-In questa base architetturale, il repository gestisce il lato dati, mentre il service coordina la logica applicativa. In questo progetto, lo stesso principio si ritrova in `src/repository/gameRepository.ts`, `src/services/gameService.ts` e `src/models/Engine/GameEngine.ts`.
-
-## 🚦 Rotta `/api/detection`
-
-Questa rotta riceve i dati di traffico provenienti dal client e li analizza per individuare eventuali attacchi di rete.
-
-Il flusso di esecuzione della rotta è il seguente:
-
-1. il client invia una richiesta `POST /api/detection`;
-2. la richiesta viene intercettata da `detectionRoutes`;
-3. il middleware di validazione verifica la presenza dei campi obbligatori;
-4. `DetectionController` richiama `DetectionService`;
-5. il service verifica lo stato del sistema, aggiorna la cache e analizza il traffico;
-6. il risultato viene classificato e associato a una decisione finale;
-7. la risposta viene inviata al client in JSON.
-
-Se si verifica un’eccezione, l’error middleware la gestisce e restituisce un errore HTTP.
-
-Nel codice del progetto reale, il punto equivalente è il motore di azioni e regole del gioco: `src/models/Engine/GameEngine.ts`, che applica validazioni, gestisce azioni e contromisure e determina lo stato finale di una partita.
-
-## 📊 Rotta `/api/admin/statistics`
-
-Questa rotta consente a un amministratore autenticato di visualizzare lo stato degli IP monitorati dal sistema. Il flusso prevede:
-
-1. `authMiddleware` per verificare il token JWT;
-2. `roleMiddleware` per verificare il ruolo amministratore;
-3. `AdminController` per recuperare le statistiche;
-4. risposta `200 OK` con i dati richiesti.
-
-In questo progetto, il medesimo principio di separazione tra autenticazione e autorizzazione è rispettato tramite `src/middleware/authMiddleware.ts` e `src/middleware/roleMiddleware.ts`, e la logica di controllo delle autorizzazioni è eseguita prima dell’accesso alle risorse protette.
-
-## 🗃️ Rotta `/api/admin/analysis`
-
-Questa rotta consente ad un amministratore autenticato di visualizzare tutte le analisi memorizzate nel database. In questo caso il repository è il punto centrale per la persistenza, così come avviene in `src/repository/gameRepository.ts` e nei modelli Sequelize presenti in `src/models/db`.
-
-## 🧹 Rotta `/api/admin/cache`
-
-Questa rotta svuota la cache del sistema, utile per resettare lo stato temporaneo delle richieste e dei blocchi. In pratica, il controller richiama un service che delega la cancellazione della cache e il reset del sistema in modo centralizzato e sicuro.
+- **Route**: definisce endpoint e catena middleware;
+- **Middleware**: autenticazione, autorizzazione, logging e gestione degli errori;
+- **Controller**: gestisce richiesta e risposta HTTP;
+- **Service**: coordina il caso d'uso;
+- **Domain / GameEngine**: applica le regole del gioco;
+- **Repository**: gestisce persistenza e ricostruzione degli oggetti di dominio;
+- **Sequelize / MySQL**: memorizzazione persistente.
 
 ---
 
-## 🧩 Design Pattern utilizzati
+# 3. Regole del gioco
 
-Il progetto adotta diversi pattern software per garantire separazione delle responsabilità, facilità di manutenzione ed estendibilità del codice.
+## 3.1 Modalità di gioco
 
-### 1) Layered Architecture
+Space Battleship 3D può essere giocato in due modalità:
 
-Il progetto è organizzato a livelli, ciascuno con responsabilità precise:
+- `user`: un utente gioca contro un altro utente;
+- `ai`: un utente gioca contro un'intelligenza artificiale.
 
-- `routes`: definiscono gli endpoint e la catena di middleware;
-- `middleware`: controllano autenticazione, autorizzazione e gestione errori;
-- `controllers`: ricevono la richiesta e la inoltrano al service;
-- `services`: orchestrano la logica applicativa;
-- `repository`: gestiscono persistenza e recupero dei dati;
-- `models`: rappresentano il dominio e i dati persistenti.
+Nelle partite PvP il creatore indica l'email dell'avversario. Un utente non può essere contemporaneamente coinvolto in più partite attive.
 
-Questo schema è leggibile in tutta la struttura del codice, e in particolare in `src/routes`, `src/controllers`, `src/services` e `src/repository`.
+  
+La modalità viene specificata nel body di `POST /game` e validata tramite Zod. Nel caso PvP il `GameService` recupera l'avversario tramite email e verifica che entrambi i giocatori siano disponibili. Nel caso AI viene creato un `AIPlayer`.
 
-### 2) Repository Pattern
+## 3.2 Griglia tridimensionale
 
-Il Repository Pattern separa la logica applicativa dalle operazioni di persistenza. Il service non interagisce direttamente con il database, ma usa un repository che incapsula tutte le chiamate SQL e la semantica del salvataggio dei dati.
+La partita si svolge su una griglia tridimensionale, quindi ogni posizione è identificata da tre coordinate:
 
-Esempi concreti:
+```text
+(x, y, z)
+```
 
-- `src/repository/gameRepository.ts`: salva e riporta lo stato delle partite e dei giocatori;
-- `src/models/db`: modelli Sequelize usati dal repository per mappare i dati al dominio;
-- `src/services/gameService.ts`: usa il repository, non il database direttamente.
+Rispetto alla battaglia navale tradizionale è presente anche l'asse di profondità.
 
-Questo produce un design molto pulito: il dominio resta indipendente da Sequelize.
+La dimensione della griglia è configurabile. I valori di default sono:
 
-### 3) Strategy Pattern
+```text
+base X/Y: 10
+profondità Z: 5
+```
 
-Lo strategy pattern è stato usato per separare la logica di scelta dell’azione da quella di esecuzione. L’idea è che un algoritmo di decisione possa cambiare senza dover modificare il motore del gioco.
+  
+La griglia viene costruita tramite `GridFactory`. Le coordinate sono rappresentate dalla classe `Coordinates`. La struttura permette di gestire lo stato delle celle e viene ricostruita dal repository quando una partita viene caricata dal database.
 
-Nel codice reale:
+## 3.3 Navi, flotta e orientamenti
 
-- `src/models/Players/AIStrategy.ts` implementa la logica di scelta dell’AI;
-- `AIPlayer` usa questa strategia per decidere se attaccare, spostarsi, difendersi o preparare una contromisura;
-- `GameEngine` applica la decisione senza dover conoscere i dettagli specifici dell’algoritmo di IA.
+Ogni giocatore possiede una flotta composta da diversi tipi di nave:
 
-Questa scelta è fondamentale per rendere l’AI facilmente sostituibile o estendibile.
+| Tipo | Dimensione |
+|---|---:|
+| Mother Ship | 5 celle |
+| Cruiser | 4 celle |
+| Scout | 2 celle |
+| Drone | 1 cella |
 
-### 4) Singleton Pattern
+La configurazione di default è:
 
-Il motore del sistema è stato modellato come singleton per evitare di creare istanze multiple di un componente centrale.
+| Tipo | Numero |
+|---|---:|
+| Mother Ship | 1 |
+| Cruiser | 1 |
+| Scout | 2 |
+| Drone | 2 |
 
-In `src/models/Engine/GameEngine.ts` troviamo:
+Sono previsti i seguenti limiti massimi:
 
-```ts
-public static getInstance(): GameEngine {
-  if (GameEngine.instance === undefined) {
-    GameEngine.instance = new GameEngine();
-  }
-  return GameEngine.instance;
+| Tipo | Numero massimo |
+|---|---:|
+| Mother Ship | 3 |
+| Cruiser | 3 |
+| Scout | 4 |
+| Drone | 5 |
+
+Le navi possono svilupparsi lungo gli orientamenti consentiti dalla partita:
+
+- `HORIZONTAL`;
+- `VERTICAL`;
+- `DEPTH`.
+
+Una nave deve rientrare completamente nella griglia e non può sovrapporsi a un'altra nave.
+
+  
+`Ship` rappresenta la singola nave e mantiene le proprie posizioni e lo stato dei colpi ricevuti. `Fleet` rappresenta l'insieme delle navi di un giocatore.
+
+Durante la creazione della partita, `FleetFactory` genera una disposizione valida delle flotte utilizzando gli orientamenti ammessi. Il backend verifica che le navi rispettino dimensioni, limiti della griglia e assenza di sovrapposizioni.
+
+## 3.4 Turni
+
+La partita è organizzata a turni. Durante il proprio turno un giocatore può eseguire al massimo una azione principale.
+
+Le azioni principali sono:
+
+- `ATTACK`;
+- `SCAN`;
+- `SHIELD`;
+- `MOVE`.
+
+`ATTACK` e `SCAN` possono aprire una finestra nella quale l'avversario può rispondere con una contromisura oppure scegliere `PASS`.
+
+  
+`Game` mantiene il turno corrente e il giocatore attivo. `GameEngine` verifica che l'azione venga richiesta dal giocatore corretto, applica le regole dell'azione e gestisce l'avanzamento del turno. Lo stato aggiornato viene poi persistito tramite `GameRepository`.
+
+## 3.5 ATTACK
+
+`ATTACK` permette di colpire una coordinata della griglia avversaria.
+
+Il giocatore specifica:
+
+```text
+x
+y
+z
+```
+
+L'attacco può produrre diversi esiti, tra cui `MISS`, `HIT`, `DESTROYED` o `GAME_OVER`.
+
+Prima della risoluzione definitiva l'avversario può avere la possibilità di utilizzare una contromisura.
+
+  
+La richiesta viene inviata tramite:
+
+```http
+POST /game/:gameId/action
+```
+
+Il controller valida il body con Zod, il service costruisce l'azione `Attack` e il `GameEngine` ne gestisce l'esecuzione. Quando è prevista una risposta dell'avversario, l'attacco viene registrato nel `Game` come pending action e successivamente persistito.
+
+## 3.6 SCAN
+
+`SCAN` permette di analizzare un volume 3x3x3 centrato sulla coordinata indicata e ottenere informazioni sulla presenza di celle occupate nell'area.
+
+Anche una scansione può aprire una finestra di contromisura.
+
+  
+La richiesta utilizza:
+
+```http
+POST /game/:gameId/action
+```
+
+Il service costruisce una `Scan` e il `GameEngine` ne esegue la logica. Se è prevista una risposta dell'avversario, la scansione viene mantenuta come pending action fino alla sua risoluzione.
+
+## 3.7 SHIELD
+
+`SHIELD` permette di attivare una protezione temporanea secondo le regole del gioco.
+
+A differenza di `ATTACK` e `SCAN`, lo scudo viene applicato direttamente e non genera una finestra di contromisura.
+
+  
+Il service costruisce l'azione `Shield`, che viene eseguita dal `GameEngine`. Gli scudi attivi fanno parte dello stato della partita e vengono salvati e ricostruiti tramite `GameRepository`.
+
+## 3.8 MOVE
+
+`MOVE` consente di spostare di una sola cella una nave che può effettuare movimento.
+
+Il giocatore specifica:
+
+- la nave tramite `shipId`;
+- l'asse `X`, `Y` oppure `Z`;
+- la direzione positiva `1` o negativa `-1`.
+
+Il movimento non è valido se porta la nave fuori dalla griglia, provoca una sovrapposizione oppure viola le regole previste per quella nave.
+
+  
+Il body REST utilizza una forma del tipo:
+
+```json
+{
+  "type": "MOVE",
+  "shipId": "...",
+  "axis": "X",
+  "direction": 1
 }
 ```
 
-Questo assicura che tutta la logica di esecuzione delle azioni e delle contromisure sia centralizzata in un unico punto.
+Il `GameService` traduce `axis` e `direction` nella coordinata di destinazione richiesta dal dominio. La classe `Move` verifica poi che lo spostamento effettivo sia di una sola cella e che la nuova posizione sia valida.
 
-### 5) Factory Pattern
+## 3.9 Pending action
 
-Le classi factory servono a creare oggetti complessi senza lasciare la responsabilità al chiamante. In questo progetto sono presenti diversi esempi:
+Quando viene effettuato un `ATTACK` o uno `SCAN`, l'azione può rimanere temporaneamente in attesa della risposta dell'avversario.
 
-- `src/models/grid/GridFactory.ts`: costruisce la griglia;
-- `src/models/fleet/FleetFactory.ts`: crea flotte e posiziona le navi;
-- `src/errors/ErrorFactory.ts`: centralizza la creazione di errori applicativi.
+Durante questa finestra l'avversario può:
 
-Questa logica è molto utile perché semplifica il codice dei service e riduce la duplicazione.
+- utilizzare una contromisura;
+- scegliere `PASS`.
 
-### 6) Command Pattern
+Finché la pending action non viene risolta, la normale progressione del turno rimane sospesa.
 
-Le azioni di gioco sono modellate come oggetti separati che rappresentano un comando. In `src/models/Action` troviamo:
+  
+`Game` mantiene le informazioni necessarie sulla pending action, come tipo, giocatore che l'ha generata e dati utili alla successiva risoluzione.
 
-- `Attack`
-- `Scan`
-- `Shield`
-- `Move`
-- `CancelAttack`
-- `AlterScan`
-- `RadioSilance`
+`GameRepository` persiste queste informazioni nelle colonne dedicate della partita, così che `findById()` possa ricostruire correttamente la pending action anche dopo un reload dal database.
 
-Il `GameEngine` riceve un’istanza del comando e la esegue, senza dover implementare direttamente tutto il comportamento specifico in un unico metodo enorme. In pratica, le azioni sono autonome, ma il motore resta il punto di orchestrazione.
+## 3.10 Contromisure
 
-### 7) Chain of Responsibility
+Le contromisure permettono al giocatore avversario di reagire a una pending action.
 
-L’architettura delle route utilizza la catena di middleware di Express, che è un classico esempio di Chain of Responsibility. In pratica:
+Sono previste:
 
-- `authMiddleware` verifica l’utente;
-- `roleMiddleware` verifica il ruolo;
-- se tutto va bene, la richiesta arriva al controller;
-- se qualcosa va storto, si interrompe la catena generando un errore.
+- `CancelAttack`;
+- `AlterScan`;
+- `RadioSilence`.
 
-Questo pattern permette di mantenere chiara la logica dell’autenticazione e dell’autorizzazione senza duplicare codice in ogni controller.
+`CancelAttack` contrasta un attacco, `AlterScan` modifica l'effetto di una scansione e `RadioSilence` permette di oscurare determinate informazioni secondo le regole del gioco.
+
+  
+Le contromisure vengono inviate tramite:
+
+```http
+POST /game/:gameId/countermeasure
+```
+
+Il controller valida il tipo richiesto. Il service recupera dal `Game` la pending action reale e costruisce la contromisura compatibile.
+
+Il `GameEngine` verifica la presenza della pending action, il giocatore autorizzato, la compatibilità della contromisura, l'Energy disponibile e, quando necessario, il valore di `silence`.
+
+## 3.11 RadioSilence e silence
+
+`RadioSilence` è disponibile nelle partite PvP e utilizza una risorsa limitata chiamata `silence`.
+
+Il valore può essere configurato tra:
+
+```text
+0 e 5
+```
+
+Ogni utilizzo valido decrementa il valore disponibile. Quando `silence` raggiunge `0`, `RadioSilence` non può più essere utilizzata.
+
+  
+Il valore `silence` fa parte dello stato persistente della partita. `GameEngine` ne verifica la disponibilità durante l'esecuzione della contromisura, mentre `GameRepository` salva il valore aggiornato.
+
+## 3.12 PASS
+
+Durante una finestra di contromisura l'avversario può scegliere di non utilizzare nessuna contromisura.
+
+In questo caso esegue `PASS`: la pending action viene risolta normalmente e il turno può proseguire.
+
+  
+La richiesta è:
+
+```http
+POST /game/:gameId/pass
+```
+
+Non richiede body.
+
+Il service carica la partita e delega la gestione a `GameEngine.pass()`, che verifica che il giocatore possa effettuare il pass e risolve la pending action. Lo stato risultante viene poi persistito.
+
+## 3.13 Energy Credits
+
+Gli Energy Credits rappresentano la risorsa utilizzata dal giocatore all'interno della singola partita.
+
+I valori di default sono:
+
+```text
+Energy iniziale:       3
+Energy massima:        6
+Rigenerazione turno:  +2
+```
+
+Azioni e contromisure possono consumare Energy. Una operazione non può essere eseguita se il giocatore non dispone dell'Energy richiesta.
+
+L'Energy può rigenerarsi durante il gioco senza superare il valore massimo.
+
+  
+La configurazione Energy viene fornita al dominio `Game` e ai giocatori. `GameEngine` controlla e aggiorna l'Energy durante l'esecuzione delle operazioni. Il valore corrente viene persistito per ciascun partecipante tramite `GameRepository`.
+
+## 3.14 TOKEN
+
+I TOKEN sono una risorsa economica associata all'utente e sono separati dall'Energy della partita.
+
+I costi previsti sono:
+
+```text
+Creazione partita: 0.300 TOKEN
+Azione di gioco:   0.015 TOKEN
+```
+
+La creazione di una partita richiede un saldo sufficiente. Gli utenti con ruolo `admin` possono modificare il credito di un utente.
+
+  
+I TOKEN sono persistiti sull'utente. Il costo di creazione viene applicato durante `POST /game`, mentre i costi delle operazioni vengono gestiti dalla logica di gioco.
+
+La modifica amministrativa del credito viene effettuata tramite:
+
+```http
+POST /refill
+```
+
+protetta da autenticazione JWT e controllo del ruolo `admin`.
+
+## 3.15 Stato della partita e vittoria
+
+Una partita attraversa gli stati:
+
+```text
+WAITING -> RUNNING -> FINISHED
+```
+
+La partita termina quando vengono soddisfatte le condizioni di vittoria previste dal gioco. Il vincitore viene quindi memorizzato.
+
+  
+`Game` contiene stato, turno, giocatore corrente e vincitore. `GameEngine` gestisce le transizioni e verifica le condizioni di fine partita.
+
+La rotta:
+
+```http
+GET /game/:gameId/state
+```
+
+restituisce una rappresentazione della partita adatta al giocatore che effettua la richiesta, senza esporre le coordinate della flotta avversaria.
+
+## 3.16 Storico delle mosse
+
+Le operazioni effettuate durante la partita vengono registrate per permettere di ricostruirne lo svolgimento.
+
+Lo storico contiene informazioni come:
+
+- giocatore;
+- tipo di azione;
+- coordinate;
+- costo Energy;
+- esito;
+- timestamp.
+
+Lo storico può essere esportato in formato CSV.
+
+  
+Le mosse vengono persistite nel database insieme allo stato della partita. Quando una partita viene caricata, `GameRepository.findById()` ricostruisce anche lo storico.
+
+La rotta:
+
+```http
+GET /game/:gameId/history
+```
+
+utilizza `HistoryCsv` per convertire le informazioni memorizzate nel formato CSV restituito al client.
+
+## 3.17 Persistenza dello stato
+
+Lo stato della partita deve rimanere coerente tra una richiesta REST e la successiva.
+
+Turno, Energy, TOKEN, navi, scudi, storico e pending action non devono quindi andare persi dopo il completamento di una richiesta.
+
+  
+`GameRepository.update()` salva lo stato modificato del dominio, mentre `GameRepository.findById()` ricostruisce il `Game` a partire dalle tabelle persistite.
+
+Le operazioni che modificano lo stato della partita vengono eseguite all'interno di transazioni; dove necessario vengono utilizzati lock sulle righe per evitare aggiornamenti concorrenti incoerenti.
 
 ---
 
-## 🧪 Repository CLI per testare la logica di base
+# 4. Diagrammi e rotte
 
-Una parte importante del progetto è stata la realizzazione di una CLI per testare la logica di base del sistema senza mettere in piedi un client completo. Questa CLI è implementata in:
+## 4.1 Rotte principali
 
-- `src/cli/play.ts`
-- `src/cli/prompt.ts`
-- `src/cli/render.ts`
+| Metodo | Rotta | Descrizione | Accesso |
+|---|---|---|---|
+| `GET` | `/` | verifica base del backend | pubblico |
+| `POST` | `/auth/register` | registrazione utente | pubblico |
+| `POST` | `/auth/login` | autenticazione e rilascio JWT | pubblico |
+| `POST` | `/game` | creazione partita | `user` |
+| `GET` | `/game/:gameId/state` | stato della partita | partecipante |
+| `POST` | `/game/:gameId/action` | esecuzione azione principale | partecipante |
+| `POST` | `/game/:gameId/countermeasure` | esecuzione contromisura | partecipante |
+| `POST` | `/game/:gameId/pass` | rinuncia alla contromisura e risoluzione pending action | partecipante |
+| `GET` | `/game/:gameId/history` | storico partita in CSV | partecipante |
+| `POST` | `/refill` | ricarica/modifica TOKEN utente | `admin` |
 
-Lo scopo è semplice:
+Le route `/game/*` sono protette da:
 
-- creare una partita in memoria;
-- far scegliere le azioni all’utente o all’IA;
-- mostrare lo stato della griglia e del sistema;
-- verificare il comportamento del motore e delle regole;
-- eseguire test manuali sulla logica prima di passare alla parte HTTP o a un client esterno.
+```text
+authMiddleware
+        |
+        v
+roleMiddleware("user")
+```
 
-Questa CLI è molto utile perché permette di evidenziare rapidamente problemi di business logic, invece di scoprire le anomalie solo tramite chiamate API. Inoltre, il codice della CLI usa il dominio del progetto senza introdurre dipendenze inutili dal lato HTTP.
+La rotta amministrativa è protetta tramite JWT e controllo del ruolo `admin`.
 
-## 🧰 Installazione
+## 4.2 Autenticazione JWT
 
-### Requisiti
+Il JWT contiene i metadati essenziali dell'utente.
 
-- Node.js
-- npm
-- Docker e Docker Compose (opzionale ma consigliato)
-- Postman per test manuali
+Il middleware:
 
-### Clonazione
+1. legge l'header `Authorization`;
+2. verifica il token tramite `jsonwebtoken`;
+3. valida il payload con Zod;
+4. inserisce l'utente autenticato nella request;
+5. passa il controllo al middleware successivo.
+
+Il controllo del ruolo è separato dall'autenticazione tramite `roleMiddleware`.
+
+## 4.3 Diagrammi
+### 4.3.1 Casi d'uso
+<a1><img src="./Sequence Diagrams/casiduso.png" height='500' align="center"/></a>
+
+---
+### 4.3.2 Diagrammi di sequenza
+> POST /auth/register
+
+Rotta che consente la registrazione di nuovi utenti. Permette solo la creazione di utenti con ruolo `user`. 
+- **Parametri**: `email` e `password`
+- **Restituisce**: `id`, `email` e `ruolo`
+
+<a1><img src="./Sequence Diagrams/SD register.png" height='500' align="center"/></a>
+
+> POST /auth/login
+
+Rotta che consente l'autenticazione di un utente, tramite cui l'utente potrà creare e giocare le partite. 
+- **Parametri**: `email` e `password`
+- **Restituisce**: il `token` jwt e i dati del `user`: `id`, `email` e `role`
+
+<a1><img src="./Sequence Diagrams/SD login.png" height='500' align="center"/></a>
+
+> POST /game
+
+Rotta che consente ad un utente di creare una partita. La partita può essere creata in 2 modalità (`user` e `ai`) specificate tra i parametri. L'utente deve essere autenticato e deve essere in possesso di token sufficienti.
+
+> nel caso di `user`
+- **Parametri**: `mode` e `opponentEmail` come obbligatori con la possibilità di specificare il parametro `silence` in modo facoltativo.
+
+> nel caso di `ai`
+- **Parametri**: `mode` come obbligatorio.
+
+> in comune tra entrambe le modalità è possibile specifcare in modo facoltativo le seguenti categorie:
+
+- **Parametri**:
+  - ***grid*** {`grid_base`, `grid_height`} 
+  - ***ships*** {`motherShip`, `cruiser`, `scout`, `drone`}
+  - ***orientation*** [`"HORIZONTAL"`, `"VERTICAL"`, `"DEPTH"`]
+  - ***energy*** {`initial`, `max`, `regeneration`}
+
+- **Restituisce**: i dati della partita appena creata in formato JSON
+
+<a1><img src="./Sequence Diagrams/SD game.png" height='500' align="center"/></a>
+
+> GET /game/{{GAMEID}}/state
+
+Rotta che permette di visualizzare i dati della partita corrente (sulla base del `{{GAMEID}}`). Richiede autenticazione.
+
+- **Restituisce**: un JSON completo delle informazioni della partita.
+
+<a1><img src="./Sequence Diagrams/SD state.png" height='500' align="center"/></a>
+
+> POST /game/{{GAMEID}}/action
+
+Rotta che permette all'utente di effettuare un'azione in gioco. Le azioni possono essere `ATTACK`, `SCAN`, `SHIELD`, o `MOVE`, ogni mossa ha un proprio funzionamento e costo. Richiede autenticazione e che sia il turno del giocatore.
+
+- **Parametri**: `type` con il tipo di mossa, `coordinates`con all'interno le coordinate (`x`, `y`, `z`)
+
+- **Restituisce**: `gameId`, `action`, `status`, `state`, `turn`, `currentPlayer`:(`id`, `type`) `energyRemaining`, `tokensRemaining`.
+
+<a1><img src="./Sequence Diagrams/SD action.png" height='500' align="center"/></a>
+
+> POST /game/{{GAMEID}}/countermeasure
+
+Rotta che permetta all'utente di effettuare una contromossa nel caso la mossa precedente è `ATTACK` o `SCAN`. Richiede autenticazione e che sia il turno del giocatore.
+
+- **Parametri**: `type`
+
+- **Restituisce**: `gameId`, `countermeasure`, `state`, `turn`, `currentPlayer`:(`id`, `type`) `energyRemaining`, `silenceRemaining`, `tokensRemaining`.
+
+<a1><img src="./Sequence Diagrams/SD countermeasure.png" height='500' align="center"/></a>
+
+> POST /game/{{GAMEID}}/pass
+
+Rotta che permette all'utente di passare il turno. Richiede autenticazione e che sia il turno del giocatore.
+
+- **Restituisce**:  `gameId`,  `status`, `result`, `state`, `turn`, `currentPlayer`:(`id`, `type`) `energyRemaining`, `tokensRemaining`.
+
+<a1><img src="./Sequence Diagrams/SD pass.png" height='500' align="center"/></a>
+
+> GET game/{{GAMEID}}/history
+Rotta che restituisce lo storico delle mosse della partita in formato CSV
+
+- **Restituisce**: i dati della partita in formato CSV
+
+<a1><img src="./Sequence Diagrams/SD history.png" height='500' align="center"/></a>
+
+# 5. Pattern utilizzati
+
+Nel progetto sono stati utilizzati diversi pattern con l'obiettivo di separare le responsabilità, ridurre l'accoppiamento tra le componenti e rendere più semplice l'estensione della logica di gioco.
+
+I principali pattern utilizzati sono:
+
+- Repository Pattern;
+- Service Layer;
+- Command Pattern;
+- Factory Pattern;
+- Singleton Pattern;
+- Value Object;
+- Chain of Responsibility tramite i middleware Express.
+
+## 5.1 Repository Pattern
+
+Il **Repository Pattern** viene utilizzato per separare la logica applicativa dalle operazioni di accesso al database.
+
+Nel progetto sono presenti principalmente:
+
+```text
+authRepository
+gameRepository
+```
+
+Il service non interagisce direttamente con Sequelize o con le tabelle MySQL, ma utilizza i metodi messi a disposizione dai repository.
+
+Il flusso è quindi:
+
+```text
+Service
+   |
+   v
+Repository
+   |
+   v
+Sequelize
+   |
+   v
+MySQL
+```
+
+Ad esempio, durante il caricamento di una partita:
+
+```text
+GameService
+    |
+    v
+GameRepository.findById()
+    |
+    v
+Sequelize / MySQL
+```
+
+`GameRepository` non si limita a effettuare semplici query. Nel progetto svolge anche il mapping tra il modello persistente e il dominio.
+
+Quando viene caricata una partita dal database, il repository recupera i dati relativi a:
+
+- partita;
+- giocatori;
+- griglia;
+- navi;
+- posizioni;
+- scudi;
+- storico;
+- eventuale pending action;
+
+e li utilizza per ricostruire un oggetto `Game` utilizzabile dal dominio.
+
+Allo stesso modo:
+
+```ts
+GameRepository.update(game, transaction)
+```
+
+traduce nuovamente lo stato del dominio nelle corrispondenti informazioni da salvare nel database.
+
+Questo permette alle classi di dominio come `Game`, `Ship` o `GameEngine` di non dipendere direttamente da Sequelize.
+
+---
+
+## 5.2 Service Layer
+
+Il **Service Layer** rappresenta il livello intermedio tra i controller HTTP, il dominio e i repository.
+
+Nel progetto i controller hanno principalmente il compito di:
+
+- ricevere la richiesta;
+- leggere parametri e body;
+- validare gli input quando necessario;
+- chiamare il service;
+- restituire la risposta HTTP;
+- inoltrare gli errori all'`errorHandler`.
+
+La logica del caso d'uso viene invece coordinata dal service.
+
+Il flusso generale è:
+
+```text
+Controller
+    |
+    v
+Service
+    |
+    +------> GameEngine / Domain
+    |
+    v
+Repository
+```
+
+Ad esempio, durante una action:
+
+```text
+gameController
+    |
+    | performAction(...)
+    v
+GameService
+    |
+    | carica la partita
+    | verifica il partecipante
+    | costruisce l'azione
+    v
+GameEngine
+    |
+    | modifica il Game
+    v
+GameRepository
+```
+
+Il service è quindi responsabile dell'orchestrazione, mentre le singole regole di gioco rimangono nel dominio.
+
+Questa separazione evita di inserire logica applicativa direttamente nelle route o nei controller.
+
+---
+
+## 5.3 Command Pattern
+
+Il **Command Pattern** è utilizzato per rappresentare le operazioni che possono essere eseguite durante una partita.
+
+Le azioni sono oggetti indipendenti che implementano un'interfaccia comune e incapsulano la propria logica di esecuzione.
+
+Tra le action presenti nel progetto troviamo:
+
+```text
+Attack
+Scan
+Shield
+Move
+```
+
+e, per le contromisure:
+
+```text
+CancelAttack
+AlterScan
+RadioSilence
+```
+
+Il principio è:
+
+```text
+GameEngine
+    |
+    v
+IAction
+    |
+    +--> Attack
+    +--> Scan
+    +--> Shield
+    +--> Move
+```
+
+Il `GameEngine` non deve quindi contenere tutta la logica specifica di ogni azione. Riceve un oggetto che rappresenta il comando e ne coordina l'esecuzione.
+
+Ogni action può inoltre definire autonomamente elementi come:
+
+- costo;
+- comportamento;
+- controlli specifici;
+- modifica dello stato del gioco.
+
+Questo rende più semplice aggiungere nuove azioni senza modificare completamente il motore di gioco.
+
+Un ulteriore vantaggio è la testabilità: `Attack`, `Scan`, `Move` e le altre action possono essere testate singolarmente.
+
+---
+
+## 5.4 Factory Pattern
+
+Il **Factory Pattern** viene utilizzato quando la creazione di un oggetto richiede una logica che non è opportuno lasciare direttamente al chiamante.
+
+Nel progetto gli esempi principali sono:
+
+```text
+GridFactory
+FleetFactory
+```
+
+### GridFactory
+
+`GridFactory` centralizza la creazione della griglia.
+
+Il codice che crea una partita non deve conoscere l'implementazione concreta utilizzata:
+
+```text
+GameService
+    |
+    v
+GridFactory
+    |
+    v
+Grid
+```
+
+In questo modo la costruzione della griglia rimane separata dalla logica del service.
+
+### FleetFactory
+
+`FleetFactory` gestisce la costruzione delle flotte e il posizionamento delle navi.
+
+In particolare permette di centralizzare operazioni come:
+
+- creazione delle navi;
+- scelta delle posizioni;
+- scelta degli orientamenti;
+- verifica dei limiti della griglia;
+- verifica delle sovrapposizioni;
+- generazione di una configurazione valida.
+
+Il service non deve quindi conoscere nel dettaglio l'algoritmo utilizzato per costruire una flotta.
+
+Nel progetto è presente anche `ErrorFactory`, utilizzata per creare in maniera centralizzata gli errori applicativi:
+
+```ts
+ErrorFactory.gameNotFound()
+ErrorFactory.forbidden()
+ErrorFactory.badRequest(...)
+```
+
+Questo permette di mantenere coerenti messaggi e status code utilizzati dal sistema.
+
+---
+
+## 5.5 Singleton Pattern
+
+Il **Singleton Pattern** viene utilizzato per `GameEngine`.
+
+L'istanza del motore viene recuperata tramite:
+
+```ts
+GameEngine.getInstance()
+```
+
+invece di creare ogni volta un nuovo `GameEngine`.
+
+Il flusso è:
+
+```text
+GameService
+    |
+    v
+GameEngine.getInstance()
+    |
+    v
+unica istanza GameEngine
+```
+
+`GameEngine` rappresenta infatti l'orchestratore delle regole di gioco e non contiene lo stato specifico di una singola partita.
+
+Lo stato appartiene all'oggetto `Game`, mentre il `GameEngine` applica le operazioni su quel `Game`.
+
+Tra le sue responsabilità troviamo:
+
+- controllo del turno;
+- controllo dello stato della partita;
+- verifica dell'Energy;
+- esecuzione delle action;
+- esecuzione delle contromisure;
+- gestione delle pending action;
+- avanzamento del turno;
+- controllo della fine della partita.
+
+L'utilizzo di una singola istanza evita quindi la creazione inutile di più motori equivalenti.
+
+---
+
+## 5.6 Chain of Responsibility nei middleware
+
+La gestione delle richieste HTTP utilizza la catena di middleware di Express, riconducibile al **Chain of Responsibility Pattern**.
+
+Ogni middleware riceve la richiesta, esegue il proprio controllo e decide se:
+
+- passare la richiesta al componente successivo tramite `next()`;
+- interrompere la catena generando un errore.
+
+Ad esempio, una rotta protetta segue un flusso simile:
+
+```text
+Request
+   |
+   v
+authMiddleware
+   |
+   v
+roleMiddleware("user")
+   |
+   v
+Controller
+```
+
+`authMiddleware` verifica il JWT e identifica l'utente.
+
+`roleMiddleware` verifica invece che l'utente possieda il ruolo richiesto.
+
+Se entrambi i controlli hanno successo, la richiesta raggiunge il controller.
+
+In caso di errore:
+
+```text
+Middleware / Controller / Service
+              |
+              v
+           next(err)
+              |
+              v
+        errorHandler
+              |
+              v
+        HTTP response
+```
+
+Questo permette di applicare autenticazione, autorizzazione e gestione degli errori senza duplicare gli stessi controlli all'interno di ogni controller.
+
+---
+
+Nel complesso i pattern collaborano secondo una struttura di questo tipo:
+
+```text
+                  HTTP Request
+                       |
+                       v
+        Chain of Responsibility
+              (Middleware)
+                       |
+                       v
+                  Controller
+                       |
+                       v
+                Service Layer
+                  /         \
+                 v           v
+          GameEngine      Repository
+          Singleton          |
+              |              v
+              |           Database
+              v
+        Command Pattern
+        Action / Countermeasure
+              |
+              v
+             Game
+
+Factory Pattern
+    |
+    +--> GridFactory
+    +--> FleetFactory
+    +--> ErrorFactory
+
+Value Object
+    |
+    +--> Coordinates
+```
+
+In questo modo ogni componente mantiene una responsabilità ben definita e la logica del dominio rimane separata sia dalla gestione HTTP sia dalla persistenza.
+
+---
+
+# 6. Installazione
+
+## 6.1 Prerequisiti
+
+Per l'esecuzione locale sono necessari:
+
+- Node.js;
+- npm;
+- Docker e Docker Compose, se si utilizza l'ambiente containerizzato;
+- MySQL 8, se si esegue senza Docker.
+
+## 6.2 Clonazione
 
 ```bash
 git clone https://github.com/chrpccnn/progettoPA_Piccinini_Quattrini.git
 cd progettoPA_Piccinini_Quattrini
 ```
 
-### Installazione dipendenze
+## 6.3 Variabili d'ambiente
 
-```bash
-npm install
+Creare un file `.env` nella root del progetto.
+
+Esempio:
+
+```env
+MSQLUSR=my_user
+MSQLPSW=my_password
+MSQLDB=my_db
+MSQLROOTPSW=root_password
+
+DB_PORT=3306
+
+JWT_SECRET=change_this_secret
+
+SEED_ADMIN_EMAIL=admin@battleship.local
+SEED_ADMIN_PASSWORD=Admin123!
+SEED_USER_PASSWORD=Player123!
 ```
 
-### Avvio in locale
+Con Docker, `DB_HOST` viene impostato sul servizio `mysql` dal `docker-compose.yaml`.
 
-```bash
-npm run build
-npm run dev
-```
-
-### Avvio con Docker
+## 6.4 Avvio con Docker
 
 ```bash
 docker compose up --build
 ```
 
-### Esecuzione della CLI
+Il backend viene esposto sulla porta:
 
-```bash
-npx ts-node src/cli/play.ts
+```text
+http://localhost:3000
 ```
 
-Questa è la via più veloce per testare la logica di base del dominio senza dover preparare una chiamata HTTP completa.
+Per inizializzare gli utenti seed:
 
-## ✅ Test
+```bash
+docker compose exec backend npm run seed
+```
 
-Il progetto prevede una sezione di test automatizzati con Jest. I test principali sono presenti nella cartella `tests/` e verificano:
+Per arrestare i container:
 
-- corretto comportamento del motore di gioco;
-- validità delle azioni e delle contromisure;
-- persistenza e ripristino dello stato;
-- regole del dominio e del gioco;
-- comportamento globale del backend.
+```bash
+docker compose down
+```
 
-Per eseguirli:
+Per eliminare anche il volume MySQL e ricreare completamente il database:
+
+```bash
+docker compose down -v
+```
+
+## 6.5 Avvio senza Docker
+
+Installazione dipendenze:
+
+```bash
+npm install
+```
+
+Compilazione:
+
+```bash
+npm run build
+```
+
+Seed in sviluppo:
+
+```bash
+npm run seed:dev
+```
+
+Avvio sviluppo:
+
+```bash
+npm run dev
+```
+
+Oppure avvio della versione compilata:
+
+```bash
+npm start
+```
+
+## 6.6 Script disponibili
+
+```text
+npm run build      compila TypeScript
+npm start          avvia dist/server.js
+npm run dev        avvia il server con nodemon
+npm test           esegue Jest
+npm run seed       esegue il seed compilato
+npm run seed:dev   esegue il seed TypeScript
+```
+
+## 6.7 Test
+
+La suite utilizza Jest e Supertest.
 
 ```bash
 npm test
 ```
 
-In pratica, i test coprono sia il livello di dominio sia il comportamento generale del backend, così da mantenere la logica sotto controllo e prevenire regressioni durante le modifiche più importanti.
+Sono presenti test relativi a:
 
-## 🪪 Autore
+- griglia e coordinate;
+- navi e flotte;
+- azioni;
+- contromisure;
+- `Game`;
+- `GameEngine`;
+- restore di una partita persistita;
+- comportamento base dell'app Express.
 
-Cecilia Lisci
+## 6.8 CLI di gioco
 
-## 📜 License
+Il dominio può essere provato anche tramite CLI testuale:
 
-MIT License
+```bash
+npx ts-node src/cli/play.ts
+```
 
-Copyright © 2026 Cecilia Lisci
+La CLI consente di verificare le principali meccaniche di gioco indipendentemente dalle API REST.

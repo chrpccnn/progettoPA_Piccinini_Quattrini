@@ -18,7 +18,7 @@ export async function createGame(
 
         return res.status(201).json(result);
     }
-    catch (err){
+    catch (err) {
         next(err);
     }
 }
@@ -29,7 +29,7 @@ export async function getGameState(
     next: NextFunction
 ) {
     // richiama lo state per ricevere informazioni riguargo lo stato della partita
-      try {
+    try {
         const result = await GameService.getGameState(
             req.params.gameId,
             req.user!.id
@@ -48,11 +48,11 @@ export async function makeAction(
     next: NextFunction
 ) {
 
-     try {
+    try {
         const result = await GameService.performAction(
             req.params.gameId,
             req.user!.id,
-            req.body.data
+            req.body
         );
 
         return res.status(200).json(result);

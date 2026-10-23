@@ -33,6 +33,11 @@ export const pwSchema = z
         "password must contain uppercase, lowercase, number and special character"
     );
 
+export const authSchema = z.object({
+    email: emailSchema,
+    password: pwSchema
+}).strict();
+
 export const role = z.enum(["admin", "user"]);
 export const type = z.enum(["admin", "player"]);
 export const modeSchema = z.enum(["ai", "user"]);
@@ -311,14 +316,14 @@ export const commonGameSchema = z.object({
 export const gameSchema = z.discriminatedUnion(
     "mode",
     [
-        commonGameSchema.extend({
+        commonGameSchema.safeExtend({
             // mode user
             mode: z.literal(modeSchema.enum.user),
             opponentEmail: emailSchema,
             silence: silenceSchema
         }).strict(),
 
-        commonGameSchema.extend({
+        commonGameSchema.safeExtend({
             // mode ai
             mode: z.literal(modeSchema.enum.ai)
         }).strict()
@@ -326,7 +331,8 @@ export const gameSchema = z.discriminatedUnion(
 );
 
 export const tokenAmountSchema = z
-    .number();
+    .number()
+    .positive();
 
 export const refillSchema = z.object({
     email: emailSchema,

@@ -326,37 +326,41 @@ describe("Actions", () => {
                 .toBe(2);
         });
 
-        it("deve contare le celle OCCUPIED nel cubo 3x3x3", () => {
+        it("deve contare le celle occupate della flotta avversaria nel cubo 3x3x3", () => {
+
             const p1 = createPlayer(
                 "p1",
                 createUser(1)
             );
 
+            const fleet = new Fleet("fleet-p2");
+
+            const scout = createScout(
+                "scout-1",
+                4,
+                5,
+                2
+            );
+
+            const drone = createDrone(
+                "drone-1",
+                6,
+                6,
+                3
+            );
+
+            fleet.addShip(scout);
+            fleet.addShip(drone);
+
             const p2 = createPlayer(
                 "p2",
-                createUser(1, 2)
+                createUser(2),
+                fleet
             );
 
             const game = createGame(
                 p1,
                 p2
-            );
-
-            const grid = game.getGrid();
-
-            grid.setCellState(
-                Coordinates.create(5, 5, 2),
-                CellState.OCCUPIED
-            );
-
-            grid.setCellState(
-                Coordinates.create(4, 5, 2),
-                CellState.OCCUPIED
-            );
-
-            grid.setCellState(
-                Coordinates.create(6, 6, 3),
-                CellState.OCCUPIED
             );
 
             const scan = new Scan(
@@ -373,25 +377,37 @@ describe("Actions", () => {
             ).toBe(3);
         });
 
-        it("deve contare anche le celle HIT", () => {
+        it("deve contare anche una cella di nave già colpita", () => {
+
             const p1 = createPlayer(
                 "p1",
                 createUser(1)
             );
 
+            const fleet = new Fleet("fleet-p2");
+
+            const drone = createDrone(
+                "drone-1",
+                5,
+                5,
+                2
+            );
+
+            fleet.addShip(drone);
+
+            drone.hit(
+                Coordinates.create(5, 5, 2)
+            );
+
             const p2 = createPlayer(
                 "p2",
-                createUser(1, 2)
+                createUser(2),
+                fleet
             );
 
             const game = createGame(
                 p1,
                 p2
-            );
-
-            game.getGrid().setCellState(
-                Coordinates.create(5, 5, 2),
-                CellState.HIT
             );
 
             const scan = new Scan(

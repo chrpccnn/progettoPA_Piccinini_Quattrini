@@ -1,7 +1,11 @@
 import { Router } from "express";
-import { login, register } from "../controllers/authController"; 
+import { login, register } from "../controllers/authController";
+import authValidatorMiddleware from "../middleware/authValidatorMiddleware";
 
 const router = Router();
+
+
+router.use(authValidatorMiddleware)
 
 // Rimanda alla relativa funzione di registrazione e di login
 router.post("/register", register);

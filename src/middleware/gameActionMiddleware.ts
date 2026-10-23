@@ -9,7 +9,7 @@ export default function gameActionMiddleware(
 ){
     // verifica che il json sia impostato correttamente tramite zod
     try{
-        req.body = actionSchema.safeParse(req.body);
+        req.body = actionSchema.parse(req.body);
         next();
     }
     catch

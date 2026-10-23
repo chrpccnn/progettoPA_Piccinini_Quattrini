@@ -1,4 +1,3 @@
-import { CellState } from "../../grid/Cell";
 import { Coordinates } from "../../grid/Coordinates";
 import { ActionContext } from "../ActionContext";
 import { BasicMove } from "../BasicMove";
@@ -25,62 +24,64 @@ export class Scan extends BasicMove {
         return this.occupiedCells;
     }
 
-public execute(
-    context: ActionContext
-): void {
-    const grid = context.game.getGrid();
+    public execute(
+        context: ActionContext
+    ): void {
+        const grid = context.game.getGrid();
 
-    if (!grid.isValid(this.center)) {
-        throw new Error(
-            "Scan center is outside the grid."
-        );
-    }
+        if (!grid.isValid(this.center)) {
+            throw new Error(
+                "Scan center is outside the grid."
+            );
+        }
 
-    if (
-        this.center.x <= 0 ||
-        this.center.x >= grid.getWidth() - 1 ||
-        this.center.y <= 0 ||
-        this.center.y >= grid.getHeight() - 1 ||
-        this.center.z <= 0 ||
-        this.center.z >= grid.getDepth() - 1
-    ) {
-        throw new Error(
-            "Scan center must be at least one cell away from every grid edge."
-        );
-    }
+        if (
+            this.center.x <= 0 ||
+            this.center.x >= grid.getWidth() - 1 ||
+            this.center.y <= 0 ||
+            this.center.y >= grid.getHeight() - 1 ||
+            this.center.z <= 0 ||
+            this.center.z >= grid.getDepth() - 1
+        ) {
+            throw new Error(
+                "Scan center must be at least one cell away from every grid edge."
+            );
+        }
 
-    let occupiedCells = 0;
+        const opponent = context.game
+            .getPlayers()
+            .find(
+                player => player !== context.player
+            );
 
-    for (let x = this.center.x - 1;
-         x <= this.center.x + 1;
-         x++) {
-        for (let y = this.center.y - 1;
-             y <= this.center.y + 1;
-             y++) {
-            for (let z = this.center.z - 1;
-                 z <= this.center.z + 1;
-                 z++) {
+        if (opponent === undefined) {
+            throw new Error(
+                "Opponent not found."
+            );
+        }
 
-                const state = grid.getCellState(
-                    Coordinates.create(x, y, z)
-                );
+        let occupiedCells = 0;
+
+        for (const ship of opponent.getFleet().getShips()) {
+
+            for (const position of ship.getPositions()) {
 
                 if (
-                    state === CellState.OCCUPIED ||
-                    state === CellState.HIT
+                    Math.abs(position.x - this.center.x) <= 1 &&
+                    Math.abs(position.y - this.center.y) <= 1 &&
+                    Math.abs(position.z - this.center.z) <= 1
                 ) {
                     occupiedCells++;
                 }
             }
         }
+
+        this.occupiedCells = occupiedCells;
     }
 
-    this.occupiedCells = occupiedCells;
-}
-
     public setOccupiedCells(
-    occupiedCells: number
-): void {
-    this.occupiedCells = occupiedCells;
-}
+        occupiedCells: number
+    ): void {
+        this.occupiedCells = occupiedCells;
+    }
 }

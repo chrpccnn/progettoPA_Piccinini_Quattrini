@@ -27,12 +27,6 @@ export default function authMiddleware(
         return next(ErrorFactory.invalidToken());
     }
 
-    const secret = process.env.JWT_SECRET;
-
-    if (!secret) {
-        throw new Error("JWT_SECRET is not configured");
-    }
-
     const [_, token] = jwt_divide;
 
     try {
@@ -50,5 +44,4 @@ export default function authMiddleware(
         console.error("JWT VERIFY ERROR:", err);
         return next(ErrorFactory.invalidToken());
     }
-
 }

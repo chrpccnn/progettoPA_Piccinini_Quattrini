@@ -1,17 +1,17 @@
 # Sistema multi-utente per il rilevamento di attacchi di rete basato su architettura client-server
 
-Il sistema sviluppato si inserisce in un contesto applicativo in cui è necessario monitorare il traffico di rete per individuare possibili attività sospette. Nell’infrastruttura ipotizzata, più client o utenti possono generare traffico verso un backend centrale, mentre un sistema di analisi si occupa di elaborare i flussi ricevuti e segnalare eventuali comportamenti anomali.
+Il sistema sviluppato si inserisce in un contesto applicativo in cui è necessario monitorare il traffico di rete per individuare possibili attività sospette. Nell’infrastruttura ipotizzata, il client invia richieste al backend contenenti feature estratte da flussi di rete (ad esempio sorgente, volume, dimensione dei pacchetti e segnali di anomalie come SYN flood), mentre il server applica procedure di controllo, verifica le credenziali e valuta il rischio associato al traffico.
 
 ## 🧠 Obiettivo del progetto
 
-Il presente progetto simula tale scenario attraverso l’impiego di un’architettura client-server, all’interno della quale il client invia al backend richieste contenenti feature estratte da flussi di rete. Nello specifico, sono state selezionate quattro features:
+Il presente progetto simula tale scenario attraverso l’impiego di un’architettura client-server, all’interno della quale il client invia al backend richieste contenenti feature estratte dal traffico di rete, come:
 
 - `sourceIP`, ovvero l’indirizzo sorgente del traffico, che identifica l’host che genera i pacchetti;
 - `packets`, cioè il numero dei pacchetti inviati in un intervallo di tempo specifico, utile per individuare il volume di traffico anomalo;
 - `bytes`, ovvero la quantità totale di bytes trasmessi nella comunicazione tra client e service;
 - `synPacketsCount`, cioè il numero di pacchetti TCP con flag `SYN`, rilevante per individuare attacchi `SYN Flood`.
 
-Il backend riceve le richieste tramite API REST sviluppate con Node.js, Express e TypeScript, verifica autenticazione e autorizzazione mediante token JWT, poi valida i dati ricevuti e avvia la pipeline di elaborazione.
+Il backend riceve le richieste tramite API REST sviluppate con Node.js, Express e TypeScript, verifica autenticazione e autorizzazione mediante token JWT, poi valida i dati ricevuti e avvia la logica di analisi del traffico. Sulla base di regole predefinite, il sistema classifica il flusso come benigno o sospetto, applicando decisioni di tipo accesso consentito, warning o blocco.
 
 Il traffico viene classificato tramite un approccio rule-based, basato su regole e soglie predefinite, distinguendo tra:
 
@@ -26,7 +26,7 @@ Sulla base della classificazione ottenuta, il sistema produce una decisione oper
 - applicare un blocco temporaneo;
 - applicare un blocco permanente.
 
-Il sistema include inoltre una componente di persistenza dei dati basata sull’utilizzo di database relazionale esterno, interfacciato mediante Sequelize, così da memorizzare le analisi effettuate e mantenere uno storico delle richieste analizzate.
+Il sistema include inoltre una componente di persistenza dei dati basata sull’utilizzo di database relazionale esterno, interfacciato mediante Sequelize, così da memorizzare le analisi effettuate e le informazioni di stato del sistema.
 
 Le informazioni salvate possono essere consultate attraverso rotte protette riservate agli utenti amministratori.
 
@@ -45,17 +45,15 @@ Le informazioni salvate possono essere consultate attraverso rotte protette rise
 
 ## 📌 Aggiornamenti recenti
 
-Nel corso dello sviluppo abbiamo consolidato la struttura del backend e aggiunto i pezzi fondamentali della logica di dominio, con particolare attenzione a:
+Nel corso dello sviluppo abbiamo consolidato la struttura del backend, ampliato la logica applicativa e migliorato in modo concreto la parte di autenticazione e gestione delle API. In particolare, i recenti avanzamenti includono:
 
-- refactoring del layer applicativo per separare meglio HTTP, service e persistenza;
-- miglioramento della gestione dello stato delle partite e delle azioni in corso;
-- introduzione di una CLI dedicata per testare rapidamente la logica di base senza dover partire da un client esterno;
-- aggiornamento della documentazione dei diagrammi e del flusso delle API;
-- aggiunta di un’architettura più modulare che rende facile testare e estendere il dominio.
+- introduzione dell’autenticazione con chiave RSA e token JWT firmati con algoritmo `RS256`, con verifica della firma tramite chiave pubblica;
+- miglioramento della gestione degli stati HTTP e delle risposte REST per le azioni dell’AI, con comportamento più chiaro e più robusto in caso di errori;
+- aggiunta della logica di posizionamento manuale delle navi, utile per testare scenari più realistici e controllati;
+- aggiornamento della documentazione dei diagrammi, dei flussi delle API e della struttura del dominio applicativo;
+- consolidamento della CLI come strumento rapido per verificare la logica di gioco senza dover partire da un client esterno.
 
-La CLI è stata resa particolarmente utile per verificare il comportamento del motore del gioco e delle regole applicative in modo immediato. Il punto di partenza è `src/cli/play.ts`, dove il sistema raccoglie input, costruisce il contesto di partita e invoca il `GameEngine` e le classi di dominio. In pratica, la CLI funziona come repository di test rapido per la logica di base, evitando di dover adattare un client esterno per ogni regolazione.
-
-Questo è coerente anche con il pattern di progetto adottato: la logica di dominio resta isolata da HTTP e database, mentre la CLI ne usa le API interne senza introdurre dipendenze inutili.
+Questi cambiamenti sono coerenti con l’architettura adottata: il dominio resta isolato da HTTP e database, mentre i controller, i service e la repository gestiscono i punti di contatto tra il sistema e il mondo esterno. La CLI, in particolare, continua a risultare utile per validare rapidamente la logica del motore e del gioco prima di passare a test più complessi o all’uso da parte di un client reale.
 
 ## 🧭 Diagrammi UML
 
@@ -63,12 +61,110 @@ Questo è coerente anche con il pattern di progetto adottato: la logica di domin
 
 <img src="./Sequence Diagrams/casiduso.png" alt="Diagramma dei casi d'uso" width="900" />
 
+### Diagramma delle classi
+
+```mermaid
+classDiagram
+    class User {
+      +id: number
+      +username: string
+      +passwordHash: string
+      +role: string
+    }
+
+    class AuthService {
+      +login(username, password): Token
+      +register(userData): User
+      +verifyToken(token): Payload
+    }
+
+    class JwtMiddleware {
+      +authenticate(req, res, next)
+      +authorize(role, req, res, next)
+    }
+
+    class AuthController {
+      +login(req, res)
+      +register(req, res)
+    }
+
+    class GameController {
+      +createGame(req, res)
+      +getGameState(req, res)
+      +executeAction(req, res)
+    }
+
+    class GameService {
+      +createGame()
+      +getState()
+      +executeAction(action)
+      +restoreGame()
+    }
+
+    class GameEngine {
+      +executeMove(action)
+      +applyCountermeasure(action)
+      +resolveTurn()
+    }
+
+    class Player {
+      +name: string
+      +type: PlayerType
+      +energy: number
+    }
+
+    class HumanPlayer
+    class AIPlayer
+
+    class AIStrategy {
+      +chooseAction(gameState): Action
+    }
+
+    class FleetFactory {
+      +buildFleet(): Fleet
+    }
+
+    class GridFactory {
+      +buildGrid(): Grid
+    }
+
+    class GameRepository {
+      +save(game)
+      +findById(id)
+      +update(game)
+    }
+
+    class GameModel
+    class UserModel
+
+    classDef app fill:#f8fafc,stroke:#334155,stroke-width:1.2px,color:#0f172a;
+    classDef core fill:#e0f2fe,stroke:#0284c7,stroke-width:1.2px,color:#082f49;
+    classDef domain fill:#dcfce7,stroke:#16a34a,stroke-width:1.2px,color:#14532d;
+    classDef data fill:#ede9fe,stroke:#7c3aed,stroke-width:1.2px,color:#4c1d95;
+
+    class AuthService,AuthController,GameController,GameService,JwtMiddleware app;
+    class GameEngine,Player,HumanPlayer,AIPlayer,AIStrategy,FleetFactory,GridFactory core;
+    class User,GameRepository,GameModel,UserModel data;
+    class GameService --> GameEngine
+    class GameEngine --> Player
+    class HumanPlayer --> GameEngine
+    class AIPlayer --> AIStrategy
+    class FleetFactory --> GridFactory
+    class AuthController --> AuthService
+    class GameController --> GameService
+    class JwtMiddleware --> AuthController
+    class GameService --> GameRepository
+    class GameRepository --> GameModel
+    class AuthService --> UserModel
+    class User --> UserModel
+```
+
 ### Diagramma di sequenza
 
 La seguente tabella riassume le principali caratteristiche delle rotte del sistema.
 
 | Metodo | Endpoint | Descrizione | Autenticazione | Gestore richiesta HTTP |
-|---|---|---|---|---|
+| |---|---|---|---|
 | POST | `/api/auth/login` | Verifica le credenziali dell'utente e genera un token JWT | No | `AuthController` |
 | POST | `/api/detection` | Riceve i dati di traffico e ne restituisce la classificazione e la decisione | No | `DetectionController` |
 | GET | `/api/admin/statistics` | Restituisce lo stato delle IP monitorate e lo stato di blocco | JWT | `AdminController` |
@@ -105,7 +201,7 @@ La seguente tabella riassume le principali caratteristiche delle rotte del siste
 
 ## 🔐 Rotta `/api/auth/login`
 
-Questa rotta autentica l’utente verificando username e password forniti. Se le credenziali inserite sono corrette, il server genera e restituisce un token JWT. Nella collection Postman è stato configurato uno script post-response che salva automaticamente il token in una variabile di ambiente.
+Questa rotta autentica l’utente verificando username e password forniti. Se le credenziali inserite sono corrette, il server genera e restituisce un token JWT. Nella collection Postman è stato definito il payload di login e la chiave pubblica usata per la verifica del token, con supporto all’algoritmo RSA (`RS256`).
 
 Il flusso è il seguente:
 
@@ -113,10 +209,10 @@ Il flusso è il seguente:
 2. la richiesta viene intercettata da `authRoutes`, che la inoltra a `AuthController`;
 3. `AuthController` richiama `AuthService`;
 4. `AuthService` usa il repository per verificare l’utente nel database;
-5. se le credenziali sono valide, viene generato un JWT;
-6. il server restituisce `200 OK` con il token.
+5. se le credenziali sono valide, viene generato un JWT firmato con chiave RSA;
+6. il server restituisce `200 OK` con il token e il client lo usa nelle richieste successive come header `Authorization`.
 
-In questa base architetturale, il repository gestisce il lato dati, mentre il service coordina la logica applicativa. In questo progetto, lo stesso principio si ritrova in `src/repository/gameRepository.ts`, dove gli oggetti di dominio vengono trasformati per essere salvati e ricaricati dal database, senza mescolare logica di persistenza con regole di business.
+In questa base architetturale, il repository gestisce il lato dati, mentre il service coordina la logica applicativa. In questo progetto, lo stesso principio si ritrova in `src/repository/gameRepository.ts`, `src/services/gameService.ts` e `src/models/Engine/GameEngine.ts`.
 
 ## 🚦 Rotta `/api/detection`
 
@@ -134,7 +230,7 @@ Il flusso di esecuzione della rotta è il seguente:
 
 Se si verifica un’eccezione, l’error middleware la gestisce e restituisce un errore HTTP.
 
-Nel codice del progetto reale, il punto equivalente è il motore di azioni e regole del gioco: `src/models/Engine/GameEngine.ts`, che applica validazioni, gestisce azioni e contromisure e determina l’esito finale di una richiesta specifica. Questa classe è un buon esempio del fatto che la logica applicativa è separata dal controller e dalle operazioni di persistenza.
+Nel codice del progetto reale, il punto equivalente è il motore di azioni e regole del gioco: `src/models/Engine/GameEngine.ts`, che applica validazioni, gestisce azioni e contromisure e determina lo stato finale di una partita.
 
 ## 📊 Rotta `/api/admin/statistics`
 
@@ -145,15 +241,15 @@ Questa rotta consente a un amministratore autenticato di visualizzare lo stato d
 3. `AdminController` per recuperare le statistiche;
 4. risposta `200 OK` con i dati richiesti.
 
-In questo progetto, il medesimo principio di separazione tra autenticazione e autorizzazione è rispettato tramite `src/middleware/authMiddleware.ts` e `src/middleware/roleMiddleware.ts`, e la logica di business è gestita dai service e dal dominio, non direttamente dalle route.
+In questo progetto, il medesimo principio di separazione tra autenticazione e autorizzazione è rispettato tramite `src/middleware/authMiddleware.ts` e `src/middleware/roleMiddleware.ts`, e la logica di controllo delle autorizzazioni è eseguita prima dell’accesso alle risorse protette.
 
 ## 🗃️ Rotta `/api/admin/analysis`
 
-Questa rotta consente ad un amministratore autenticato di visualizzare tutte le analisi memorizzate nel database. In questo caso il repository è il punto centrale per la persistenza, così come in `src/repository/gameRepository.ts`: il repository ricarica e salva lo stato completo del gioco, facendo da ponte tra il dominio e il database. Anche la lettura dei dati storici è gestita in modo coerente, senza mescolare database e regole di gioco.
+Questa rotta consente ad un amministratore autenticato di visualizzare tutte le analisi memorizzate nel database. In questo caso il repository è il punto centrale per la persistenza, così come avviene in `src/repository/gameRepository.ts` e nei modelli Sequelize presenti in `src/models/db`.
 
 ## 🧹 Rotta `/api/admin/cache`
 
-Questa rotta svuota la cache del sistema, utile per resettare lo stato temporaneo delle richieste e dei blocchi. In pratica, il controller richiama un service che delega la cancellazione della cache, come avviene in molte architetture basate sul pattern service + repository.
+Questa rotta svuota la cache del sistema, utile per resettare lo stato temporaneo delle richieste e dei blocchi. In pratica, il controller richiama un service che delega la cancellazione della cache e il reset del sistema in modo centralizzato e sicuro.
 
 ---
 
@@ -176,7 +272,7 @@ Questo schema è leggibile in tutta la struttura del codice, e in particolare in
 
 ### 2) Repository Pattern
 
-Il Repository Pattern separa la logica applicativa dalle operazioni di persistenza. Il service non interagisce direttamente con il database, ma usa un repository che incapsula tutte le chiamate SQL/ORM.
+Il Repository Pattern separa la logica applicativa dalle operazioni di persistenza. Il service non interagisce direttamente con il database, ma usa un repository che incapsula tutte le chiamate SQL e la semantica del salvataggio dei dati.
 
 Esempi concreti:
 
@@ -237,7 +333,7 @@ Le azioni di gioco sono modellate come oggetti separati che rappresentano un com
 - `AlterScan`
 - `RadioSilance`
 
-Il `GameEngine` riceve un’istanza del comando e la esegue, senza dover implementare direttamente tutto il comportamento specifico in un unico metodo enorme. In pratica, le azioni sono autonome, testabili e facilmente estendibili.
+Il `GameEngine` riceve un’istanza del comando e la esegue, senza dover implementare direttamente tutto il comportamento specifico in un unico metodo enorme. In pratica, le azioni sono autonome, ma il motore resta il punto di orchestrazione.
 
 ### 7) Chain of Responsibility
 
@@ -248,7 +344,7 @@ L’architettura delle route utilizza la catena di middleware di Express, che è
 - se tutto va bene, la richiesta arriva al controller;
 - se qualcosa va storto, si interrompe la catena generando un errore.
 
-Questo pattern permette di mantenere cancellazione logica dell’autenticazione e dell’autorizzazione senza duplicare codice in ogni controller.
+Questo pattern permette di mantenere chiara la logica dell’autenticazione e dell’autorizzazione senza duplicare codice in ogni controller.
 
 ---
 
@@ -268,7 +364,7 @@ Lo scopo è semplice:
 - verificare il comportamento del motore e delle regole;
 - eseguire test manuali sulla logica prima di passare alla parte HTTP o a un client esterno.
 
-Questa CLI è molto utile perché permette di evidenziare rapidamente problemi di business logic, invece di scoprire le anomalie solo tramite chiamate API. Inoltre, il codice della CLI usa il dominio e il motore già implementati, senza introdurre duplicazioni di regole. In questo senso, la CLI è diventata un vero ambiente di verifica della logica applicativa.
+Questa CLI è molto utile perché permette di evidenziare rapidamente problemi di business logic, invece di scoprire le anomalie solo tramite chiamate API. Inoltre, il codice della CLI usa il dominio del progetto senza introdurre dipendenze inutili dal lato HTTP.
 
 ## 🧰 Installazione
 

@@ -76,7 +76,6 @@ export class Game {
             throw new Error("Silence must be an integer between 0 and 5.");
         }
 
-        // Radio Silence può essere configurato anche contro l'AI.
         validateEnergyConfig(energyConfig);
 
         if (allowedOrientations.length === 0) {

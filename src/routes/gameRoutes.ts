@@ -5,6 +5,7 @@ import { createGame, getGameState, makeAction, makeCountermeasure, passTurn, get
 import gameValidatorMiddleware from "../middleware/gameValuesMiddleware"
 import gameActionMiddleware from "../middleware/gameActionMiddleware"
 import gameCountermeasuresMiddleware from "../middleware/gameCountermeasuresMiddleware";
+import gameParamsMiddleware from "../middleware/gameParamsMiddleware";
 
 const router = Router();
 
@@ -24,12 +25,14 @@ router.post(
 // da in output le informazioni della partita
 router.get(
     "/:gameId/state",
+    gameParamsMiddleware,
     getGameState,
 );
 
 // esegue una delle azioni possibili
 router.post(
     "/:gameId/action",
+    gameParamsMiddleware,
     gameActionMiddleware,
     makeAction,
 );
@@ -38,6 +41,7 @@ router.post(
 // esegue una delle contromosse possibili
 router.post(
     "/:gameId/countermeasure",
+    gameParamsMiddleware,
     gameCountermeasuresMiddleware,
     makeCountermeasure,
 );
@@ -45,12 +49,14 @@ router.post(
 // fa passare il turno
 router.post(
     "/:gameId/pass",
+    gameParamsMiddleware,
     passTurn
 );
 
 // restitusce lo storico
 router.get(
     "/:gameId/history",
+    gameParamsMiddleware,
     getHistory,
 );
 

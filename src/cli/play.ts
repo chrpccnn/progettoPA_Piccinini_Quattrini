@@ -363,9 +363,9 @@ async function setup(prompt: Prompt): Promise<Session> {
     while (true) {
         console.log("\n--- Griglia ---");
 
-        const width = await prompt.int("Larghezza", 3, 20, 10);
-        const height = await prompt.int("Altezza", 3, 20, 10);
-        const depth = await prompt.int("Profondità", 3, 20, 5);
+        const width = await prompt.int("Larghezza", 5, 20, 10);
+        const height = await prompt.int("Altezza", 5, 20, 10);
+        const depth = await prompt.int("Profondità", 5, 20, 5);
 
         console.log("\n--- Flotta ---");
         config = {} as FleetConfig;
@@ -403,13 +403,14 @@ async function setup(prompt: Prompt): Promise<Session> {
         }
     }
 
-    // Radio Silence è configurabile anche contro l'IA.
-    const silence = await prompt.int(
+    const silence = pvp
+    ? await prompt.int(
         "Parametro silence",
         0,
         5,
         3
-    );
+    )
+    : 0;
 
     const user1 = makeUser("giocatore1@cli.local");
 

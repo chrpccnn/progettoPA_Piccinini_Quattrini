@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import { AppError } from "../errors/appError";
-const { status } = require("http-status");
 
 export function errorHandler(
     err: unknown,

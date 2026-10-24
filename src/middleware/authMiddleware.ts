@@ -5,9 +5,7 @@ import { jwtPayloadSchema, JwtPayload } from "../Zod/zodSchemas"
 import { getPublicKey } from "../jwtKey";
 
 export interface AuthenticatedRequest<P = {}>
-    extends Request<P> {
-    user?: JwtPayload;
-}
+    extends Request<P> {user?: JwtPayload;}
 
 export default function authMiddleware(
     req: AuthenticatedRequest,
@@ -41,7 +39,6 @@ export default function authMiddleware(
         next();
     }
     catch(err) {
-        console.error("JWT VERIFY ERROR:", err);
         return next(ErrorFactory.invalidToken());
     }
 }

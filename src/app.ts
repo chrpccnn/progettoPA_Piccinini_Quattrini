@@ -14,7 +14,7 @@ app.use(express.json());
 // Middleeare globale, eseguito ad ogni rotta
 app.use(logger);
 
-// Rotta di test
+// health check
 app.use("/", router);
 // Rotte di autenticazione
 app.use("/auth", authRoutes);

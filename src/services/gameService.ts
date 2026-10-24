@@ -428,8 +428,7 @@ export class GameService {
     }
 
     /*
-     * Azioni, contromosse e PASS: da collegare nel prossimo passo.
-     * Il pattern e' quello di createGame: withTransaction, lettura con
+     * Il pattern è quello di createGame: withTransaction, lettura con
      * GameRepository.findById(id, transaction, true), GameEngine,
      * GameRepository.update(game, transaction).
      */

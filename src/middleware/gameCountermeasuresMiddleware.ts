@@ -14,6 +14,6 @@ export default function gameCountermeasuresMiddleware(
     }
     catch
     {
-        next(ErrorFactory.badRequest("Invalid action data"));
+        next(ErrorFactory.badRequest("Invalid countermeasure data"));
     }
 }

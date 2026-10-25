@@ -6,3 +6,4 @@ dist/
 .git
 .gitignore
 jwtRS256.key
+PA.env.postman_environment.json

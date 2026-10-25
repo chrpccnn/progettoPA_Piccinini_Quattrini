@@ -2,10 +2,6 @@
 
 Backend REST per una battaglia navale tridimensionale, sviluppato per l'esame di **Programmazione Avanzata**.
 
-Gli utenti si registrano, ottengono un JWT e giocano partite su una griglia 3D contro un altro utente o contro un'intelligenza artificiale. Ogni azione consuma Energy Credits (la risorsa della singola partita), mentre i token sono separati dall'utente.
-
-Repository: https://github.com/chrpccnn/progettoPA_Piccinini_Quattrini/tree/main
-
 ## Indice
 
 1. [Obiettivo del progetto](#1-obiettivo-del-progetto)
@@ -215,8 +211,10 @@ Protegge una cella del giocatore, anche vuota, fino a che non assorbe un colpo. 
 
 ## 4.8 MOVE
 
-Sposta di una cella un'intera nave. Costa 2 Energy. Possono muoversi solo `SCOUT` e `DRONE`, e solo se non sono mai state colpite. Lo spostamento non può uscire dalla griglia né finire su una cella occupata da un'altra nave.
+Sposta di una cella un'intera nave. Costa 2 Energy. Possono muoversi solo `SCOUT` e `DRONE`, e solo se non sono mai state colpite. Lo spostamento non può uscire dalla griglia né finire su una cella occupata da un'altra nave. `Move` controlla poi che lo spostamento sia di una cella e che la nuova posizioni non crei collisioni.
+Il `GameService` trasforma `axis` e `direction` nella coordinata di destinazione a partire dalla prima posizione della nave. 
 
+## 4.9 Esempio di richiesta
 ```json
 {
   "type": "MOVE",
@@ -226,13 +224,11 @@ Sposta di una cella un'intera nave. Costa 2 Energy. Possono muoversi solo `SCOUT
 }
 ```
 
-Il `GameService` trasforma `axis` e `direction` nella coordinata di destinazione a partire dalla prima posizione della nave. `Move` controlla poi che lo spostamento sia di una cella e che la nuova posizioni non crei collisioni.
-
-## 4.9 Pending action
+## 4.10 Pending action
 
 Dopo un `ATTACK` o uno `SCAN` il turno resta sospeso. L'avversario può usare una contromisura oppure fare `PASS`. Finché la pending action non è risolta nessun altro comando di gioco viene accettato.
 
-## 4.10 Contromisure
+## 4.11 Contromisure
 
 | Contromisura | Contrasta | Costo Energy | Effetto |
 |---|---|---:|---|
@@ -242,17 +238,17 @@ Dopo un `ATTACK` o uno `SCAN` il turno resta sospeso. L'avversario può usare un
 
 Si inviano con `POST /game/:gameId/countermeasure`. Il controller valida il tipo, il service recupera la pending action reale e costruisce la contromisura compatibile, il `GameEngine` controlla che la contromisura sia legittima e la applica.
 
-## 4.11 RadioSilence e silence
+## 4.12 RadioSilence e silence
 
 `RadioSilence` usa una risorsa limitata, `silence`, configurabile da 0 a 5 (default 3) per ogni giocatore. Ogni utilizzo la decrementa e a 0 la contromisura non è più disponibile. Il parametro viene salvato in partita e ricaricato insieme allo stato.
 
 L'esito di un attacco sotto Radio Silence compare come `HIDDEN` nello storico dell'attaccante finché la partita non è finita.
 
-## 4.12 PASS
+## 4.13 PASS
 
 L'avversario rinuncia alla contromisura. La pending action viene risolta normalmente (un attacco viene eseguito, una scansione è già stata calcolata) e il turno prosegue. Il giocatore che ha generato l'azione non paga ulteriori costi, ma il passatore paga sempre la contromisura assente o il costo di pass.
 
-## 4.13 Energy Credits
+## 4.14 Energy Credits
 
 ```text
 Energy iniziale:       3
@@ -262,7 +258,7 @@ Rigenerazione turno:  +2
 
 I tre valori sono configurabili alla creazione (`energy.initial`, `energy.max`, `energy.regeneration`, con `initial` non superiore a `max`). L'Energy non supera mai il massimo e un'operazione senza abbastanza energia viene rifiutata.
 
-## 4.14 TOKEN
+## 4.15 TOKEN
 
 I TOKEN appartengono all'utente e sono separati dall'Energy.
 
@@ -277,7 +273,7 @@ Azione di gioco:   0.015 TOKEN
 - Dopo la creazione il saldo può scendere sotto zero: il controllo viene fatto solo all'inizio.
 - Un `admin` può aggiungere TOKEN a un utente con `POST /refill`.
 
-## 4.15 Stato della partita e vittoria
+## 4.16 Stato della partita e vittoria
 
 ```text
 WAITING -> RUNNING -> FINISHED
@@ -285,7 +281,7 @@ WAITING -> RUNNING -> FINISHED
 
 La partita nasce già avviata (`RUNNING`) e termina quando un attacco distrugge l'ultima nave avversaria. Il vincitore viene salvato. `GET /game/:gameId/state` restituisce turno, giocatore corrente, pending action, Energy, silence e stato delle navi.
 
-## 4.16 Storico delle mosse
+## 4.17 Storico delle mosse
 
 Ogni azione, contromisura e risoluzione viene registrata con giocatore, tipo, coordinate, costo Energy, esito e timestamp. `GET /game/:gameId/history` restituisce il CSV:
 
@@ -295,15 +291,15 @@ turn,player,action,x,y,z,energyCost,result,timestamp
 
 Lo storico è di sola aggiunta: a ogni salvataggio vengono inserite solo le mosse nuove.
 
-## 4.17 Persistenza e concorrenza
+## 4.18 Persistenza e concorrenza
 
 `GameRepository.update()` salva lo stato dopo ogni richiesta e `findById()` lo ricostruisce. Le operazioni che modificano la partita avvengono in una transazione, con la riga della partita bloccata per evitare race condition.
 
-## 4.18 Partite contro l'IA
+## 4.19 Partite contro l'IA
 
-Dopo ogni richiesta dell'utente il service fa giocare l'IA: se c'è una pending action da parte dell'utente l'IA risponde (contromisura o `PASS`), poi, se tocca a lei, gioca il turno. `AIStrategy` calcola la migliore mossa possibile in base allo stato di gioco.
+Dopo ogni richiesta dell'utente il service fa giocare l'IA: se c'è una pending action da parte dell'utente l'IA risponde (contromisura o `PASS`), poi, se tocca a lei, gioca il turno. `AIStrategy` calcola la migliore mossa possibile in base allo stato di gioco. 
 
-## 4.19 Rotte
+## 4.20 Rotte
 
 | Metodo | Rotta | Descrizione | Accesso |
 |---|---|---|---|
@@ -354,7 +350,7 @@ Esempio per `POST /refill`:
 { "email": "player1@battleship.local", "tokens": 5 }
 ```
 
-## 4.20 Autenticazione JWT
+## 4.21 Autenticazione JWT
 
 Il JWT contiene `id`, `email` e `role` ed è firmato con RS256 e scade dopo 2 ore. Il middleware di autenticazione:
 
@@ -366,7 +362,7 @@ Il JWT contiene `id`, `email` e `role` ed è firmato con RS256 e scade dopo 2 or
 
 Il controllo del ruolo è separato, in `roleMiddleware`.
 
-## 4.21 Errori
+## 4.22 Errori
 
 | Codice | Quando |
 |---|---|

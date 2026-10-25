@@ -1,14 +1,15 @@
 {
   "info": {
-    "_postman_id": "0e526bfe-81b4-4524-99ff-3e017adb74c8",
+    "_postman_id": "250df3f9-d018-463c-8d06-9e4b9b28840b",
     "name": "ProgettoPA - user",
+    "description": "Collection per testare il flusso delle partite in modalità \"user\".",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "52694153",
-    "_collection_link": "https://go.postman.co/collection/52694153-0e526bfe-81b4-4524-99ff-3e017adb74c8?source=collection_link"
+    "_collection_link": "https://go.postman.co/collection/52694153-250df3f9-d018-463c-8d06-9e4b9b28840b?source=collection_link"
   },
   "item": [
     {
-      "name": "BasicReq",
+      "name": "Health",
       "request": {
         "method": "GET",
         "header": [],
@@ -27,7 +28,7 @@
       "response": []
     },
     {
-      "name": "Register1",
+      "name": "Register User 1",
       "request": {
         "method": "POST",
         "header": [],
@@ -56,7 +57,7 @@
       "response": []
     },
     {
-      "name": "Register2",
+      "name": "Register User 2",
       "request": {
         "method": "POST",
         "header": [],
@@ -92,7 +93,7 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "const jsonResponse = pm.response.json();\r\npm.environment.set(\"ADMINJWT\", jsonResponse.token);"
+              "const jsonResponse = pm.response.json();\npm.environment.set(\"ADMINJWT\", jsonResponse.token);"
             ]
           }
         }
@@ -102,7 +103,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"email\": \"admin@battleship.local\",\r\n  \"password\": \"Admin123!\"\r\n}",
+          "raw": "{\n    \"email\": \"admin@battleship.local\",\n    \"password\": \"Admin123!\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -125,7 +126,7 @@
       "response": []
     },
     {
-      "name": "Refill 1",
+      "name": "Refill User 1",
       "request": {
         "auth": {
           "type": "bearer",
@@ -141,7 +142,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n    \"email\": \"laura1@gmail.it\",\r\n    \"tokens\": 5\r\n}",
+          "raw": "{\n    \"email\": \"laura1@gmail.it\",\n    \"tokens\": 5\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -149,22 +150,21 @@
           }
         },
         "url": {
-          "raw": "http://{{HOST}}:{{PORT}}/refill/",
+          "raw": "http://{{HOST}}:{{PORT}}/refill",
           "protocol": "http",
           "host": [
             "{{HOST}}"
           ],
           "port": "{{PORT}}",
           "path": [
-            "refill",
-            ""
+            "refill"
           ]
         }
       },
       "response": []
     },
     {
-      "name": "Refill 2",
+      "name": "Refill User 2",
       "request": {
         "auth": {
           "type": "bearer",
@@ -180,7 +180,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n    \"email\": \"laura2@gmail.it\",\r\n    \"tokens\": 5\r\n}",
+          "raw": "{\n    \"email\": \"laura2@gmail.it\",\n    \"tokens\": 5\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -188,29 +188,28 @@
           }
         },
         "url": {
-          "raw": "http://{{HOST}}:{{PORT}}/refill/",
+          "raw": "http://{{HOST}}:{{PORT}}/refill",
           "protocol": "http",
           "host": [
             "{{HOST}}"
           ],
           "port": "{{PORT}}",
           "path": [
-            "refill",
-            ""
+            "refill"
           ]
         }
       },
       "response": []
     },
     {
-      "name": "Login 1",
+      "name": "Login User 1",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "const jsonResponse = pm.response.json();\r\npm.environment.set(\"JWT\", jsonResponse.token);"
+              "const jsonResponse = pm.response.json();\npm.environment.set(\"JWT\", jsonResponse.token);"
             ]
           }
         }
@@ -220,7 +219,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"email\": \"laura1@gmail.it\",\r\n  \"password\": \"Password123!\"\r\n}",
+          "raw": "{\n    \"email\": \"laura1@gmail.it\",\n    \"password\": \"Password123!\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -243,14 +242,14 @@
       "response": []
     },
     {
-      "name": "Login 2",
+      "name": "Login User 2",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "const jsonResponse = pm.response.json();\r\npm.environment.set(\"JWT2\", jsonResponse.token);"
+              "const jsonResponse = pm.response.json();\npm.environment.set(\"JWT2\", jsonResponse.token);"
             ]
           }
         }
@@ -260,7 +259,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"email\": \"laura2@gmail.it\",\r\n  \"password\": \"Password123!\"\r\n}",
+          "raw": "{\n    \"email\": \"laura2@gmail.it\",\n    \"password\": \"Password123!\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -290,7 +289,7 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "const jsonResponse = pm.response.json();\r\npm.environment.set(\"GAMEID\", jsonResponse.gameId);"
+              "const jsonResponse = pm.response.json();\npm.environment.set(\"GAMEID\", jsonResponse.gameId);"
             ]
           }
         }
@@ -310,7 +309,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n    \"mode\": \"user\",\r\n    \"opponentEmail\": \"laura2@gmail.it\",\r\n    \"silence\": 5\r\n}",
+          "raw": "{\n    \"mode\": \"user\",\n    \"opponentEmail\": \"laura2@gmail.it\",\n    \"silence\": 3,\n    \"grid\": {\n        \"grid_base\": 10,\n        \"grid_height\": 5\n    },\n    \"ships\": {\n        \"motherShip\": 1,\n        \"cruiser\": 1,\n        \"scout\": 2,\n        \"drone\": 3\n    },\n    \"orientation\": [\n        \"HORIZONTAL\",\n        \"VERTICAL\",\n        \"DEPTH\"\n    ],\n    \"energy\": {\n        \"initial\": 6,\n        \"max\": 6,\n        \"regeneration\": 6\n    },\n    \"placements\": {\n        \"motherShip\": [\n            {\n                \"x\": 0,\n                \"y\": 0,\n                \"z\": 0,\n                \"orientation\": \"HORIZONTAL\"\n            }\n        ],\n        \"cruiser\": [\n            {\n                \"x\": 0,\n                \"y\": 2,\n                \"z\": 0,\n                \"orientation\": \"HORIZONTAL\"\n            }\n        ],\n        \"scout\": [\n            {\n                \"x\": 0,\n                \"y\": 4,\n                \"z\": 0,\n                \"orientation\": \"HORIZONTAL\"\n            },\n            {\n                \"x\": 0,\n                \"y\": 6,\n                \"z\": 0,\n                \"orientation\": \"HORIZONTAL\"\n            }\n        ],\n        \"drone\": [\n            {\n                \"x\": 0,\n                \"y\": 8,\n                \"z\": 0,\n                \"orientation\": \"HORIZONTAL\"\n            },\n            {\n                \"x\": 2,\n                \"y\": 8,\n                \"z\": 0,\n                \"orientation\": \"HORIZONTAL\"\n            },\n            {\n                \"x\": 4,\n                \"y\": 8,\n                \"z\": 0,\n                \"orientation\": \"HORIZONTAL\"\n            }\n        ]\n    }\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -332,14 +331,14 @@
       "response": []
     },
     {
-      "name": "state",
+      "name": "State User 1",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "const jsonResponse = pm.response.json();\r\n\r\njsonResponse.players.forEach(player => {\r\n    if (player.you) {\r\n        const counters = {};\r\n\r\n        player.ships.forEach(ship => {\r\n            counters[ship.type] = (counters[ship.type] || 0) + 1;\r\n\r\n            const variableName = `shipId_${ship.type}_${counters[ship.type]}`;\r\n\r\n            pm.environment.set(variableName, ship.id);\r\n        });\r\n    }\r\n});"
+              "const jsonResponse = pm.response.json();\n\njsonResponse.players.forEach(player => {\n    if (player.you) {\n        const counters = {};\n\n        player.ships.forEach(ship => {\n            counters[ship.type] = (counters[ship.type] || 0) + 1;\n            const variableName = `shipId_${ship.type}_${counters[ship.type]}`;\n            pm.environment.set(variableName, ship.id);\n        });\n    }\n});\n\nconsole.log(\"State:\", jsonResponse.state);\nconsole.log(\"Turn:\", jsonResponse.turn);\nconsole.log(\"Current player:\", jsonResponse.currentPlayer);\nconsole.log(\"Pending action:\", jsonResponse.pendingAction ?? \"none\");"
             ]
           }
         }
@@ -374,7 +373,49 @@
       "response": []
     },
     {
-      "name": "Attack",
+      "name": "State User 2",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const jsonResponse = pm.response.json();\n\nconsole.log(\"State:\", jsonResponse.state);\nconsole.log(\"Turn:\", jsonResponse.turn);\nconsole.log(\"Current player:\", jsonResponse.currentPlayer);\nconsole.log(\"Pending action:\", jsonResponse.pendingAction ?? \"none\");"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT2}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/state",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "state"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "User 1 ATTACK",
       "request": {
         "auth": {
           "type": "bearer",
@@ -390,7 +431,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"type\": \"ATTACK\",\r\n  \"coordinates\": {\r\n    \"x\": 1,\r\n    \"y\": 1,\r\n    \"z\": 1\r\n  }\r\n}",
+          "raw": "{\n    \"type\": \"ATTACK\",\n    \"coordinates\": {\n        \"x\": 8,\n        \"y\": 8,\n        \"z\": 4\n    }\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -414,7 +455,7 @@
       "response": []
     },
     {
-      "name": "countermeasure",
+      "name": "User 2 CANCEL_ATTACK",
       "request": {
         "auth": {
           "type": "bearer",
@@ -430,7 +471,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n    \"type\":\"CANCEL_ATTACK\"\r\n}",
+          "raw": "{\n    \"type\": \"CANCEL_ATTACK\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -454,7 +495,7 @@
       "response": []
     },
     {
-      "name": "action 2",
+      "name": "User 2 SCAN",
       "request": {
         "auth": {
           "type": "bearer",
@@ -470,7 +511,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n    \"type\": \"ATTACK\",\r\n    \"coordinates\": {\r\n        \"x\": 2,\r\n        \"y\": 2,\r\n        \"z\": 2\r\n  }\r\n}",
+          "raw": "{\n    \"type\": \"SCAN\",\n    \"coordinates\": {\n        \"x\": 5,\n        \"y\": 5,\n        \"z\": 2\n    }\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -494,7 +535,167 @@
       "response": []
     },
     {
-      "name": "pass",
+      "name": "User 1 ALTER_SCAN",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"type\": \"ALTER_SCAN\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/countermeasure",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "countermeasure"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "User 1 ATTACK for RADIO_SILENCE",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"type\": \"ATTACK\",\n    \"coordinates\": {\n        \"x\": 7,\n        \"y\": 7,\n        \"z\": 4\n    }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/action",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "action"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "User 2 RADIO_SILENCE",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT2}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"type\": \"RADIO_SILENCE\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/countermeasure",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "countermeasure"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "User 2 ATTACK for PASS",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT2}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"type\": \"ATTACK\",\n    \"coordinates\": {\n        \"x\": 9,\n        \"y\": 9,\n        \"z\": 4\n    }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/action",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "action"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "User 1 PASS",
       "request": {
         "auth": {
           "type": "bearer",
@@ -534,14 +735,94 @@
       "response": []
     },
     {
-      "name": "Move",
+      "name": "User 1 SHIELD",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"type\": \"SHIELD\",\n    \"coordinates\": {\n        \"x\": 0,\n        \"y\": 0,\n        \"z\": 0\n    }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/action",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "action"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "User 2 SHIELD",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT2}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"type\": \"SHIELD\",\n    \"coordinates\": {\n        \"x\": 0,\n        \"y\": 0,\n        \"z\": 0\n    }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/action",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "action"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Refresh State User 1",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              ""
+              "const jsonResponse = pm.response.json();\n\njsonResponse.players.forEach(player => {\n    if (player.you) {\n        const counters = {};\n\n        player.ships.forEach(ship => {\n            counters[ship.type] = (counters[ship.type] || 0) + 1;\n            const variableName = `shipId_${ship.type}_${counters[ship.type]}`;\n            pm.environment.set(variableName, ship.id);\n        });\n    }\n});\n\nconsole.log(\"State:\", jsonResponse.state);\nconsole.log(\"Turn:\", jsonResponse.turn);\nconsole.log(\"Current player:\", jsonResponse.currentPlayer);\nconsole.log(\"Pending action:\", jsonResponse.pendingAction ?? \"none\");"
             ]
           }
         }
@@ -557,19 +838,10 @@
             }
           ]
         },
-        "method": "POST",
+        "method": "GET",
         "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n    \"type\": \"MOVE\",\n    \"shipId\": \"{{shipId_DRONE_1}}\",\n    \"axis\": \"X\",\n    \"direction\": 1\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
         "url": {
-          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/action",
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/state",
           "protocol": "http",
           "host": [
             "{{HOST}}"
@@ -578,54 +850,14 @@
           "path": [
             "game",
             "{{GAMEID}}",
-            "action"
+            "state"
           ]
         }
       },
       "response": []
     },
     {
-      "name": "Shield",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{JWT2}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n    \"type\": \"SHIELD\",\r\n    \"coordinates\": {\r\n        \"x\": 3,\r\n        \"y\": 3,\r\n        \"z\": 3\r\n  }\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/action",
-          "protocol": "http",
-          "host": [
-            "{{HOST}}"
-          ],
-          "port": "{{PORT}}",
-          "path": [
-            "game",
-            "{{GAMEID}}",
-            "action"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Scan",
+      "name": "User 1 MOVE DRONE",
       "request": {
         "auth": {
           "type": "bearer",
@@ -641,7 +873,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n    \"type\": \"SCAN\",\r\n    \"coordinates\": {\r\n        \"x\": 2,\r\n        \"y\": 2,\r\n        \"z\": 2\r\n  }\r\n}",
+          "raw": "{\n    \"type\": \"MOVE\",\n    \"shipId\": \"{{shipId_DRONE_1}}\",\n    \"axis\": \"Z\",\n    \"direction\": 1\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -665,87 +897,18 @@
       "response": []
     },
     {
-      "name": "AlterScan",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{JWT2}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n    \"type\": \"ALTER_SCAN\"\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
+      "name": "Final State User 1",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const jsonResponse = pm.response.json();\n\nconsole.log(\"State:\", jsonResponse.state);\nconsole.log(\"Turn:\", jsonResponse.turn);\nconsole.log(\"Current player:\", jsonResponse.currentPlayer);\nconsole.log(\"Pending action:\", jsonResponse.pendingAction ?? \"none\");"
+            ]
           }
-        },
-        "url": {
-          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/countermeasure",
-          "protocol": "http",
-          "host": [
-            "{{HOST}}"
-          ],
-          "port": "{{PORT}}",
-          "path": [
-            "game",
-            "{{GAMEID}}",
-            "countermeasure"
-          ]
         }
-      },
-      "response": []
-    },
-    {
-      "name": "Attack2",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{JWT2}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n    \"type\": \"ATTACK\",\r\n    \"coordinates\": {\r\n        \"x\": 0,\r\n        \"y\": 2,\r\n        \"z\": 2\r\n  }\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/action",
-          "protocol": "http",
-          "host": [
-            "{{HOST}}"
-          ],
-          "port": "{{PORT}}",
-          "path": [
-            "game",
-            "{{GAMEID}}",
-            "action"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "RadioSilence",
+      ],
       "request": {
         "auth": {
           "type": "bearer",
@@ -757,19 +920,10 @@
             }
           ]
         },
-        "method": "POST",
+        "method": "GET",
         "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n    \"type\": \"RADIO_SILENCE\"\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
         "url": {
-          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/countermeasure",
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/state",
           "protocol": "http",
           "host": [
             "{{HOST}}"
@@ -778,14 +932,56 @@
           "path": [
             "game",
             "{{GAMEID}}",
-            "countermeasure"
+            "state"
           ]
         }
       },
       "response": []
     },
     {
-      "name": "history",
+      "name": "Final State User 2",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const jsonResponse = pm.response.json();\n\nconsole.log(\"State:\", jsonResponse.state);\nconsole.log(\"Turn:\", jsonResponse.turn);\nconsole.log(\"Current player:\", jsonResponse.currentPlayer);\nconsole.log(\"Pending action:\", jsonResponse.pendingAction ?? \"none\");"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT2}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/state",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "state"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "History CSV",
       "request": {
         "auth": {
           "type": "bearer",
@@ -814,36 +1010,6 @@
         }
       },
       "response": []
-    }
-  ],
-  "variable": [
-    {
-      "key": "json_web_token_01d1",
-      "secret": true
-    },
-    {
-      "key": "json_web_token_03en",
-      "secret": true
-    },
-    {
-      "key": "json_web_token_11pa",
-      "secret": true
-    },
-    {
-      "key": "json_web_token_0d1l",
-      "secret": true
-    },
-    {
-      "key": "JWT",
-      "value": ""
-    },
-    {
-      "key": "ADMINJWT",
-      "value": ""
-    },
-    {
-      "key": "JWT2",
-      "value": ""
     }
   ]
 }

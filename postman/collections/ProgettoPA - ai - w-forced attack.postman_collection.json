@@ -1,0 +1,708 @@
+{
+  "info": {
+    "_postman_id": "093453ae-9221-48e4-b991-7f36c869ac5c",
+    "name": "ProgettoPA - ai - w/forced attack",
+    "description": "Questa collection permette di testare le rotte che permettono il gioco in modalità \"ai\", in questo caso è stata attuata una restrizione sugli energy credits per costringere l'ia ad attuare solo mosse ATTACK. Per testare altre mosse è possibile utilizzare la collection \"ProgettoPA - ai.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "52694153",
+    "_collection_link": "https://go.postman.co/collection/52694153-093453ae-9221-48e4-b991-7f36c869ac5c?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Register AI User",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"lauraai@gmail.it\",\n    \"password\": \"Password123!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/auth/register",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "auth",
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login Admin",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const jsonResponse = pm.response.json();\npm.environment.set(\"ADMINJWT\", jsonResponse.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"admin@battleship.local\",\n    \"password\": \"Admin123!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/auth/login",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Refill AI User",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{ADMINJWT}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"lauraai@gmail.it\",\n    \"tokens\": 5\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/refill",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "refill"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const jsonResponse = pm.response.json();\npm.environment.set(\"JWT\", jsonResponse.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"lauraai@gmail.it\",\n    \"password\": \"Password123!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/auth/login",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create AI Game",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const jsonResponse = pm.response.json();\npm.environment.set(\"GAMEID\", jsonResponse.gameId);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"mode\": \"ai\",\n    \"energy\": {\n        \"initial\": 1,\n        \"max\": 1,\n        \"regeneration\": 1\n    }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "State",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const jsonResponse = pm.response.json();\n\njsonResponse.players.forEach(player => {\n    if (player.you) {\n        const counters = {};\n\n        player.ships.forEach(ship => {\n            counters[ship.type] = (counters[ship.type] || 0) + 1;\n            const variableName = `shipId_${ship.type}_${counters[ship.type]}`;\n            pm.environment.set(variableName, ship.id);\n        });\n    }\n});\n\nconsole.log(\"State:\", jsonResponse.state);\nconsole.log(\"Turn:\", jsonResponse.turn);\nconsole.log(\"Current player:\", jsonResponse.currentPlayer);\nconsole.log(\"Pending action:\", jsonResponse.pendingAction ?? \"none\");"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/state",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "state"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "ATTACK 1",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"type\": \"ATTACK\",\n    \"coordinates\": {\n        \"x\": 1,\n        \"y\": 1,\n        \"z\": 1\n    }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/action",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "action"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "State 2",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const jsonResponse = pm.response.json();\n\nconsole.log(\"State:\", jsonResponse.state);\nconsole.log(\"Turn:\", jsonResponse.turn);\nconsole.log(\"Current player:\", jsonResponse.currentPlayer);\nconsole.log(\"Pending action:\", jsonResponse.pendingAction ?? \"none\");"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/state",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "state"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "PASS 1",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/pass",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "pass"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "ATTACK 2",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"type\": \"ATTACK\",\n    \"coordinates\": {\n        \"x\": 2,\n        \"y\": 2,\n        \"z\": 2\n    }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/action",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "action"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "State 3",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const jsonResponse = pm.response.json();\n\nconsole.log(\"State:\", jsonResponse.state);\nconsole.log(\"Turn:\", jsonResponse.turn);\nconsole.log(\"Current player:\", jsonResponse.currentPlayer);\nconsole.log(\"Pending action:\", jsonResponse.pendingAction ?? \"none\");"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/state",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "state"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "PASS 2",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/pass",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "pass"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "ATTACK 3",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"type\": \"ATTACK\",\n    \"coordinates\": {\n        \"x\": 3,\n        \"y\": 3,\n        \"z\": 2\n    }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/action",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "action"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "State 4",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const jsonResponse = pm.response.json();\n\nconsole.log(\"State:\", jsonResponse.state);\nconsole.log(\"Turn:\", jsonResponse.turn);\nconsole.log(\"Current player:\", jsonResponse.currentPlayer);\nconsole.log(\"Pending action:\", jsonResponse.pendingAction ?? \"none\");"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/state",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "state"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "PASS 3",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/pass",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "pass"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Final State",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const jsonResponse = pm.response.json();\n\nconsole.log(\"State:\", jsonResponse.state);\nconsole.log(\"Turn:\", jsonResponse.turn);\nconsole.log(\"Current player:\", jsonResponse.currentPlayer);\nconsole.log(\"Pending action:\", jsonResponse.pendingAction ?? \"none\");"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/state",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "state"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "History",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/history",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "history"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

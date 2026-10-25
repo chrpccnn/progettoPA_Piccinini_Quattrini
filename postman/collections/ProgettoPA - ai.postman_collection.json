@@ -2,6 +2,7 @@
   "info": {
     "_postman_id": "bc0d64a6-ca99-40a8-aecc-6897ed36bb2e",
     "name": "ProgettoPA - ai",
+    "description": "Questa collection a differenza delle altre non funziona tramite il run automatico, data la casualità delle mosse dell'ai è ottimale testare il flusso sulla base delle mosse attuate, come per giocare una reale partita.  \nL'idea è usare la rotta state per capire la mossa attuata dall'ia e capire in che momento del gioco siamo, così da attuare la mossa che permetterà la continuazione del gioco.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "52694153",
     "_collection_link": "https://go.postman.co/collection/52694153-bc0d64a6-ca99-40a8-aecc-6897ed36bb2e?source=collection_link"
@@ -231,7 +232,7 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "const jsonResponse = pm.response.json();\r\n\r\njsonResponse.players.forEach(player => {\r\n    if (player.you) {\r\n        const counters = {};\r\n\r\n        player.ships.forEach(ship => {\r\n            counters[ship.type] = (counters[ship.type] || 0) + 1;\r\n\r\n            const variableName = `shipId_${ship.type}_${counters[ship.type]}`;\r\n\r\n            pm.environment.set(variableName, ship.id);\r\n        });\r\n    }\r\n});"
+              "// per salvare le navi in variabili d'ambiente\r\nconst jsonResponse = pm.response.json();\r\n\r\njsonResponse.players.forEach(player => {\r\n    if (player.you) {\r\n        const counters = {};\r\n\r\n        player.ships.forEach(ship => {\r\n            counters[ship.type] = (counters[ship.type] || 0) + 1;\r\n\r\n            const variableName = `shipId_${ship.type}_${counters[ship.type]}`;\r\n\r\n            pm.environment.set(variableName, ship.id);\r\n        });\r\n    }\r\n});\r\n\r\nconsole.log(\"Game:\", jsonResponse.gameId);\r\nconsole.log(\"State:\", jsonResponse.state);\r\nconsole.log(\"Turn:\", jsonResponse.turn);\r\nconsole.log(\"Current player:\", jsonResponse.currentPlayer);\r\nconsole.log(\"Pending action:\", jsonResponse.pendingAction ?? \"none\");"
             ]
           }
         }
@@ -282,7 +283,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"type\": \"ATTACK\",\r\n  \"coordinates\": {\r\n    \"x\": 3,\r\n    \"y\": 2,\r\n    \"z\": 2\r\n  }\r\n}",
+          "raw": "{\r\n  \"type\": \"ATTACK\",\r\n  \"coordinates\": {\r\n    \"x\": 5,\r\n    \"y\": 7,\r\n    \"z\": 4\r\n  }\r\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -300,6 +301,48 @@
             "game",
             "{{GAMEID}}",
             "action"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "state",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// per salvare le navi in variabili d'ambiente\r\nconst jsonResponse = pm.response.json();\r\n\r\njsonResponse.players.forEach(player => {\r\n    if (player.you) {\r\n        const counters = {};\r\n\r\n        player.ships.forEach(ship => {\r\n            counters[ship.type] = (counters[ship.type] || 0) + 1;\r\n\r\n            const variableName = `shipId_${ship.type}_${counters[ship.type]}`;\r\n\r\n            pm.environment.set(variableName, ship.id);\r\n        });\r\n    }\r\n});\r\n\r\nconsole.log(\"Game:\", jsonResponse.gameId);\r\nconsole.log(\"State:\", jsonResponse.state);\r\nconsole.log(\"Turn:\", jsonResponse.turn);\r\nconsole.log(\"Current player:\", jsonResponse.currentPlayer);\r\nconsole.log(\"Pending action:\", jsonResponse.pendingAction ?? \"none\");"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/state",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "state"
           ]
         }
       },
@@ -340,6 +383,48 @@
             "game",
             "{{GAMEID}}",
             "action"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "state",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// per salvare le navi in variabili d'ambiente\r\nconst jsonResponse = pm.response.json();\r\n\r\nconsole.log(\"Game:\", jsonResponse.gameId);\r\nconsole.log(\"State:\", jsonResponse.state);\r\nconsole.log(\"Turn:\", jsonResponse.turn);\r\nconsole.log(\"Current player:\", jsonResponse.currentPlayer);\r\nconsole.log(\"Pending action:\", jsonResponse.pendingAction ?? \"none\");"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{JWT}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:{{PORT}}/game/{{GAMEID}}/state",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "{{PORT}}",
+          "path": [
+            "game",
+            "{{GAMEID}}",
+            "state"
           ]
         }
       },

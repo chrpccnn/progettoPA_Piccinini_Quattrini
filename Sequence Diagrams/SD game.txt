@@ -2,83 +2,127 @@ title Sequence diagram - POST /game
 
 client->gameRoutes: POST /game
 
-gameRoutes->authMiddleware: verify JWT
-authMiddleware-->gameRoutes: next()
+gameRoutes->authMiddleware: verify JWT with public key
 
-gameRoutes->roleMiddleware: requireRole("user")
-roleMiddleware-->gameRoutes: next()
+alt missing or invalid JWT
+    authMiddleware->errorHandler: next(missingToken)
+    errorHandler-->client: 401 Unauthorized
+else valid JWT
+    authMiddleware-->gameRoutes: next()
 
-gameRoutes->gameValidatorMiddleware: validate game body with Zod
-gameValidatorMiddleware-->gameRoutes: next()
+    gameRoutes->roleMiddleware: require role "user"
 
-gameRoutes->gameController: createGame(req, res, next)
-gameController->gameService: createGame(userId, body)
+    alt wrong role
+        roleMiddleware->errorHandler: next(forbidden)
+        errorHandler-->client: 403 Forbidden
+    else role valid
+        roleMiddleware-->gameRoutes: next()
 
-gameService->gameService: begin transaction
+        gameRoutes->gameValidatorMiddleware: gameSchema.parse(req.body)
 
-alt mode == "user"
-    gameService->UserRepository: findByEmail(opponentEmail)
-    UserRepository->MySQL: SELECT opponent
-    MySQL-->UserRepository: User | null
-    UserRepository-->gameService: opponent
+        alt invalid game configuration
+            gameValidatorMiddleware->errorHandler: next(BadRequest)
+            errorHandler-->client: 400 Bad request
+        else valid game configuration
+            gameValidatorMiddleware-->gameRoutes: next()
 
-    alt opponent not found
-        gameService-->gameController: throw UserNotFound
-        gameController->errorHandler: next(err)
-        errorHandler-->client: 404 User not found
+            gameRoutes->gameController: createGame(req, res, next)
+            gameController->gameService: createGame(userId, body)
+
+            gameService->Sequelize: withTransaction()
+            Sequelize->MySQL: Begin
+
+            alt mode == "user"
+                gameService->authRepository: findByEmail(opponentEmail, transaction)
+                authRepository->MySQL: SELECT opponent
+                MySQL-->authRepository: User | undefined
+                authRepository-->gameService: opponent
+
+                alt opponent not found
+                    gameService-->gameController: throw UserNotFound
+                    Sequelize->MySQL: ROLLBACK
+                    gameController->errorHandler: next(err)
+                    errorHandler-->client: 404 User not found
+                end
+
+                alt opponent is creator
+                    gameService-->gameController: throw BadRequest
+                    Sequelize->MySQL: ROLLBACK
+                    gameController->errorHandler: next(err)
+                    errorHandler-->client: 400 You cannot play against yourself
+                end
+            end
+
+            gameService->authRepository: lockByIds(userIds, transaction)
+            authRepository->MySQL: SELECT users FOR UPDATE
+            MySQL-->authRepository: locked users
+            authRepository-->gameService: users
+
+            gameService->gameService: verify creator TOKEN >= creation cost
+
+            alt insufficient TOKEN
+                gameService-->gameController: throw InsufficientTokens
+                Sequelize->MySQL: Rollback
+                gameController->errorHandler: next(err)
+                errorHandler-->client: 401 Insufficient tokens
+            end
+
+            gameService->gameRepository: hasActiveGame(creatorId, transaction)
+            gameRepository->MySQL: check active games
+            MySQL-->gameRepository: true | false
+            gameRepository-->gameService: result
+
+            alt creator already in active game
+                gameService-->gameController: throw UserAlreadyInGame
+                Sequelize->MySQL: Rollback
+                gameController->errorHandler: next(err)
+                errorHandler-->client: 409 Conflict
+            end
+
+            alt mode == "user"
+                gameService->gameRepository: hasActiveGame(opponentId, transaction)
+                gameRepository->MySQL: check opponent active games
+                MySQL-->gameRepository: true | false
+                gameRepository-->gameService: result
+
+                alt opponent already in active game
+                    gameService-->gameController: throw OpponentAlreadyInGame
+                    Sequelize->MySQL: Rollback
+                    gameController->errorHandler: next(err)
+                    errorHandler-->client: 409 Conflict
+                end
+            end
+
+            gameService->GridFactory: create(grid_base, grid_base, grid_height)
+            GridFactory-->gameService: Grid
+
+            gameService->FleetFactory: place creator placements
+            FleetFactory-->gameService: creator Fleet
+
+            alt mode == "user"
+                gameService->FleetFactory: randomly create opponent Fleet
+                FleetFactory-->gameService: opponent Fleet
+                gameService->GameDomain: create two HumanPlayers
+            else mode == "ai"
+                gameService->FleetFactory: randomly create AI Fleet
+                FleetFactory-->gameService: AI Fleet
+                gameService->GameDomain: create HumanPlayer + AIPlayer
+            end
+
+            GameDomain-->gameService: Game
+
+            gameService->GameDomain: payCreationCost()
+            gameService->GameDomain: start()
+
+            gameService->gameRepository: insert(game, transaction)
+            gameRepository->MySQL: INSERT ...
+            MySQL-->gameRepository: persisted
+            gameRepository-->gameService: saved
+
+            Sequelize->MySQL: Commit
+
+            gameService-->gameController: gameId + state + turn + players + tokensRemaining
+            gameController-->client: 201 Created + JSON
+        end
     end
 end
-
-gameService->UserRepository: lockByIds(userIds, transaction)
-UserRepository->MySQL: SELECT users FOR UPDATE
-MySQL-->UserRepository: locked users
-UserRepository-->gameService: users
-
-gameService->gameService: verify creator TOKEN balance
-
-gameService->gameRepository: hasActiveGame(userId, transaction)
-gameRepository->MySQL: check active game
-MySQL-->gameRepository: true | false
-gameRepository-->gameService: result
-
-alt creator already in active game
-    gameService-->gameController: throw UserAlreadyInGame
-    gameController->errorHandler: next(err)
-    errorHandler-->client: 409 Conflict
-end
-
-alt mode == "user"
-    gameService->gameRepository: hasActiveGame(opponentId, transaction)
-    gameRepository->MySQL: check opponent active game
-    MySQL-->gameRepository: true | false
-    gameRepository-->gameService: result
-
-    alt opponent already in active game
-        gameService-->gameController: throw OpponentAlreadyInGame
-        gameController->errorHandler: next(err)
-        errorHandler-->client: 409 Conflict
-    end
-end
-
-gameService->GameDomain: create Grid and random Fleets
-GameDomain-->gameService: Grid + Fleets
-
-alt mode == "user"
-    gameService->GameDomain: create HumanPlayers and Game
-else mode == "ai"
-    gameService->GameDomain: create HumanPlayer, AIPlayer and Game
-end
-
-GameDomain-->gameService: Game
-
-gameService->GameDomain: payCreationCost()
-gameService->GameDomain: start()
-
-gameService->gameRepository: insert(game, transaction)
-gameRepository->MySQL: INSERT game, players, ships, positions, grid and TOKEN changes
-MySQL-->gameRepository: persisted
-gameRepository-->gameService: saved
-
-gameService->gameService: commit transaction
-gameService-->gameController: create game result
-gameController-->client: 201 Created + JSON

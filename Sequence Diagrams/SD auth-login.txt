@@ -1,28 +1,43 @@
 title Sequence diagram - POST /auth/login
 
 client->authRoutes: POST /auth/login
-authRoutes->authController: login(req, res, next)
-authController->authService: login(email, password)
 
-authService->authRepository: findByEmail(email)
-authRepository->MySQL: SELECT user WHERE email = ?
-MySQL-->authRepository: User | null
-authRepository-->authService: User | null
+authRoutes->authValidatorMiddleware: authSchema.parse(req.body)
 
-alt user not found
-    authService-->authController: throw InvalidCredentials
-    authController->errorHandler: next(err)
-    errorHandler-->client: 401 Unauthorized
+alt invalid authentication data
+    authValidatorMiddleware->errorHandler: next(BadRequest)
+    errorHandler-->client: 400 Invalid authentication data
+else valid authentication data
+    authValidatorMiddleware-->authRoutes: next()
+
+    authRoutes->authController: login(req, res, next)
+    authController->authService: login(email, password)
+
+    authService->authRepository: findByEmail(email)
+    authRepository->MySQL: SELECT user WHERE email = ?
+    MySQL-->authRepository: User | undefined
+    authRepository-->authService: User | undefined
+
+    alt user not found
+        authService-->authController: throw invalidCredentials
+        authController->errorHandler: next(err)
+        errorHandler-->client: 401 Invalid credentials
+    else user found
+        authService->authService: bcrypt.compare(plainPassword, encryptedpsw)
+
+        alt password invalid
+            authService-->authController: throw InvalidCredentials
+            authController->errorHandler: next(err)
+            errorHandler-->client: 401 Invalid credentials
+        else password valid
+            authService->jwtKey: getPrivateKey()
+            jwtKey-->authService: RSA private key
+
+            authService->JWT: jwt.sign
+            JWT-->authService: token
+
+            authService-->authController: token + user data
+            authController-->client: 200 OK + JSON
+        end
+    end
 end
-
-authService->authService: bcrypt.compare(password, hash)
-
-alt password invalid
-    authService-->authController: throw InvalidCredentials
-    authController->errorHandler: next(err)
-    errorHandler-->client: 401 Unauthorized
-end
-
-authService->authService: jwt.sign(user metadata)
-authService-->authController: token + user data
-authController-->client: 200 OK + JSON

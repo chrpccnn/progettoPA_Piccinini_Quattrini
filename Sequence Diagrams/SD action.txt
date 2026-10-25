@@ -5,58 +5,106 @@ client->gameRoutes: POST /game/:gameId/action
 gameRoutes->authMiddleware: verify JWT
 authMiddleware-->gameRoutes: next()
 
-gameRoutes->roleMiddleware: requireRole("user")
+gameRoutes->roleMiddleware: require role "user"
 roleMiddleware-->gameRoutes: next()
 
-gameRoutes->gameController: makeAction(req, res, next)
-gameController->gameController: actionSchema.safeParse(req.body)
+gameRoutes->gameParamsMiddleware: validate gameId
 
-alt invalid action body
-    gameController->errorHandler: next(BadRequest)
-    errorHandler-->client: 400 Invalid action data
+alt invalid gameId
+    gameParamsMiddleware->errorHandler: next(BadRequest)
+    errorHandler-->client: 400 Invalid gameId
+else valid gameId
+    gameParamsMiddleware-->gameRoutes: next()
+
+    gameRoutes->gameActionMiddleware: actionSchema.parse(req.body)
+
+    alt invalid action body
+        gameActionMiddleware->errorHandler: next(BadRequest)
+        errorHandler-->client: 400 Invalid action data
+    else valid action body
+        gameActionMiddleware-->gameRoutes: next()
+
+        gameRoutes->gameController: makeAction(req, res, next)
+        gameController->gameService: performAction(gameId, userId, body)
+
+        gameService->Sequelize: withTransaction()
+        Sequelize->MySQL: Begin
+
+        gameService->gameRepository: findById(gameId, transaction, true)
+        gameRepository->MySQL: SELECT game and related data FOR UPDATE
+        MySQL-->gameRepository: persisted data | null
+        gameRepository->gameRepository: restore domain Game
+        gameRepository-->gameService: Game | undefined
+
+        alt game not found
+            gameService-->gameController: throw GameNotFound
+            Sequelize->MySQL: Rollback
+            gameController->errorHandler: next(err)
+            errorHandler-->client: 404 Game not found
+        else game found
+            gameService->gameService: find player associated with userId
+
+            alt user is not participant
+                gameService-->gameController: throw Forbidden
+                Sequelize->MySQL: Rollback
+                gameController->errorHandler: next(err)
+                errorHandler-->client: 403 Forbidden
+            else user is participant
+                gameService->gameService: buildAction(body, player)
+
+                gameService->GameEngine: executeAction(game, player, action)
+                GameEngine->GameEngine: validate data
+
+                alt action not allowed
+                    GameEngine-->gameService: throw error
+
+                    alt insufficient Energy
+                        gameService-->gameController: throw InsufficientEnergy
+                        Sequelize->MySQL: Rollback
+                        gameController->errorHandler: next(err)
+                        errorHandler-->client: 409 Insufficient Energy Credits
+                    else other invalid action
+                        gameService-->gameController: throw BadRequest
+                        Sequelize->MySQL: Rollback
+                        gameController->errorHandler: next(err)
+                        errorHandler-->client: 400 Bad request
+                    end
+                else action allowed
+                     GameEngine->GameDomain: apply action costs
+
+    alt pending action required
+        GameEngine->GameDomain: store pending action
+    else
+        GameEngine->GameDomain: resolve action
+    end
+
+                    gameService->gameService: handleAI(game, engine)
+
+                    alt game mode == "ai"
+                        alt human action is pending for AI
+                            gameService->AIPlayer: respondToPendingAction(game, engine)
+                            AIPlayer->AIStrategy: choose countermeasure or PASS
+                            AIStrategy->GameEngine: resolve pending action
+                        end
+
+                        alt game running and AI is current player with no pending action
+                            gameService->AIPlayer: takeStrategicTurn(game, engine)
+                            AIPlayer->AIStrategy: choose ATTACK, SCAN, MOVE, SHIELD or skip
+                            AIStrategy->GameEngine: execute AI action
+                        end
+                    end
+
+                    gameService->gameRepository: update(game, transaction)
+                    gameRepository->MySQL: UPDATE ...
+                    MySQL-->gameRepository: persisted
+                    gameRepository-->gameService: updated
+
+                    Sequelize->MySQL: Commit
+
+                    gameService-->gameController: action status + state + turn + Energy + TOKEN
+                    gameController-->client: 200 OK + JSON
+                end
+            end
+        end
+    end
 end
-
-gameController->gameService: performAction(gameId, userId, body)
-gameService->gameService: begin transaction
-
-gameService->gameRepository: findById(gameId, transaction, true)
-gameRepository->MySQL: SELECT game and related data FOR UPDATE
-MySQL-->gameRepository: persisted game data | null
-gameRepository->gameRepository: restore domain Game
-gameRepository-->gameService: Game | undefined
-
-alt game not found
-    gameService-->gameController: throw GameNotFound
-    gameController->errorHandler: next(err)
-    errorHandler-->client: 404 Game not found
-end
-
-gameService->gameService: verify userId is a participant
-
-alt user is not participant
-    gameService-->gameController: throw Forbidden
-    gameController->errorHandler: next(err)
-    errorHandler-->client: 403 Forbidden
-end
-
-gameService->gameService: buildAction(body, player)
-
-gameService->GameEngine: executeAction(game, player, action)
-
-alt action not allowed
-    GameEngine-->gameService: throw action error
-    gameService-->gameController: throw BadRequest
-    gameController->errorHandler: next(err)
-    errorHandler-->client: error response
-end
-
-GameEngine-->gameService: game updated / pending action possibly set
-
-gameService->gameRepository: update(game, transaction)
-gameRepository->MySQL: UPDATE game, Energy, TOKEN, pending, ships, shields and history
-MySQL-->gameRepository: persisted
-gameRepository-->gameService: updated
-
-gameService->gameService: commit transaction
-gameService-->gameController: action response
-gameController-->client: 200 OK + JSON

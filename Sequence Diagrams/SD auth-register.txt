@@ -1,25 +1,36 @@
 title Sequence diagram - POST /auth/register
 
 client->authRoutes: POST /auth/register
-authRoutes->authController: register(req, res, next)
-authController->authService: register(email, password)
 
-authService->authRepository: findByEmail(email)
-authRepository->MySQL: SELECT user WHERE email = ?
-MySQL-->authRepository: User | null
-authRepository-->authService: User | null
+authRoutes->authValidatorMiddleware: authSchema.parse(req.body)
 
-alt user already exists
-    authService-->authController: throw UserAlreadyExists
-    authController->errorHandler: next(err)
-    errorHandler-->client: 409 Conflict
+alt invalid authentication data
+    authValidatorMiddleware->errorHandler: next(BadRequest)
+    errorHandler-->client: 400 Invalid authentication data
+else valid authentication data
+    authValidatorMiddleware-->authRoutes: next()
+
+    authRoutes->authController: register(req, res, next)
+    authController->authService: register(email, password)
+
+    authService->authRepository: findByEmail(email)
+    authRepository->MySQL: SELECT user WHERE email = ?
+    MySQL-->authRepository: User | undefined
+    authRepository-->authService: User | undefined
+
+    alt user already exists
+        authService-->authController: throw UserAlreadyExists
+        authController->errorHandler: next(err)
+        errorHandler-->client: 409 Email already exists
+    else user does not exist
+        authService->authService: bcrypt.hash(password, 10)
+
+        authService->authRepository: createNewUser(email, passwordHash)
+        authRepository->MySQL: INSERT user with role = "user"
+        MySQL-->authRepository: User
+        authRepository-->authService: User
+
+        authService-->authController: User data
+        authController-->client: 201 Created + JSON
+    end
 end
-
-authService->authService: bcrypt.hash(password)
-authService->authRepository: createNewUser(email, encryptedPassword)
-authRepository->MySQL: INSERT user
-MySQL-->authRepository: User
-authRepository-->authService: User
-
-authService-->authController: registration result
-authController-->client: 201 Created + JSON

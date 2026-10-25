@@ -5,50 +5,80 @@ client->gameRoutes: POST /game/:gameId/pass
 gameRoutes->authMiddleware: verify JWT
 authMiddleware-->gameRoutes: next()
 
-gameRoutes->roleMiddleware: requireRole("user")
+gameRoutes->roleMiddleware: require role "user"
 roleMiddleware-->gameRoutes: next()
 
-gameRoutes->gameController: passTurn(req, res, next)
-gameController->gameService: passCountermeasure(gameId, userId)
+gameRoutes->gameParamsMiddleware: validate gameId
 
-gameService->gameService: begin transaction
+alt invalid gameId
+    gameParamsMiddleware->errorHandler: next(BadRequest)
+    errorHandler-->client: 400 Invalid gameId
+else valid gameId
+    gameParamsMiddleware-->gameRoutes: next()
 
-gameService->gameRepository: findById(gameId, transaction, true)
-gameRepository->MySQL: SELECT game and related data FOR UPDATE
-MySQL-->gameRepository: persisted game data | null
-gameRepository->gameRepository: restore domain Game
-gameRepository-->gameService: Game | undefined
+    gameRoutes->gameController: passTurn(req, res, next)
+    gameController->gameService: passCountermeasure(gameId, userId)
 
-alt game not found
-    gameService-->gameController: throw GameNotFound
-    gameController->errorHandler: next(err)
-    errorHandler-->client: 404 Game not found
+    gameService->Sequelize: withTransaction()
+    Sequelize->MySQL: Begin
+
+    gameService->gameService: loadForParticipant(gameId, userId, transaction, true)
+
+    gameService->gameRepository: findById(gameId, transaction, true)
+    gameRepository->MySQL: SELECT game and related data FOR UPDATE
+    MySQL-->gameRepository: persisted data | null
+    gameRepository->gameRepository: restore domain Game
+    gameRepository-->gameService: Game | undefined
+
+    alt game not found
+        gameService-->gameController: throw GameNotFound
+        Sequelize->MySQL: Rollback
+        gameController->errorHandler: next(err)
+        errorHandler-->client: 404 Game not found
+    else user is not participant
+        gameService-->gameController: throw Forbidden
+        Sequelize->MySQL: Rollback
+        gameController->errorHandler: next(err)
+        errorHandler-->client: 403 Forbidden
+    else participant
+        gameService->GameEngine: pass(game, player)
+        GameEngine->GameEngine: verify game running and pending action exists
+        GameEngine->GameEngine: verify player is opponent of pending action owner
+
+        alt PASS not allowed
+            GameEngine-->gameService: throw error
+            gameService-->gameController: throw BadRequest
+            Sequelize->MySQL: Rollback
+            gameController->errorHandler: next(err)
+            errorHandler-->client: 400 Bad request
+        else PASS allowed
+            GameEngine->GameDomain: chargeHumanToken()
+
+            alt pending action == ATTACK
+                GameEngine->GameDomain: execute pending ATTACK
+            else pending action == SCAN
+                GameEngine->GameDomain: keep previously calculated SCAN result
+            end
+
+            GameEngine->GameDomain: recordResolution(...)
+            GameEngine->GameDomain: clearPendingAction()
+            GameEngine->GameDomain: advance(game, pendingPlayer, result)
+
+            gameService->gameService: handleAI(game, engine)
+
+            alt game mode == "ai" and AI must continue
+                gameService->AIPlayer: perform AI response
+            end
+
+            gameService->gameRepository: update(game, transaction)
+            gameRepository->MySQL: UPDATE ...
+            MySQL-->gameRepository: persisted
+            gameRepository-->gameService: updated
+
+            Sequelize->MySQL: Commit
+
+            gameService-->gameController: result + state + turn + Energy + TOKEN
+            gameController-->client: 200 OK + JSON
+        end
+    end
 end
-
-gameService->gameService: verify userId is a participant
-
-alt user is not participant
-    gameService-->gameController: throw Forbidden
-    gameController->errorHandler: next(err)
-    errorHandler-->client: 403 Forbidden
-end
-
-gameService->GameEngine: pass(game, player)
-
-alt pass not allowed
-    GameEngine-->gameService: throw pass error
-    gameService-->gameController: throw BadRequest
-    gameController->errorHandler: next(err)
-    errorHandler-->client: error response
-end
-
-GameEngine-->gameService: pending action resolved
-
-gameService->gameRepository: update(game, transaction)
-gameRepository->MySQL: UPDATE game, TOKEN, pending, ships and history
-MySQL-->gameRepository: persisted
-gameRepository-->gameService: updated
-
-gameService->gameService: commit transaction
-gameService-->gameController: pass response
-gameController-->client: 200 OK + JSON

@@ -1,0 +1,53 @@
+title Sequence diagram - POST /refill
+
+client->adminRoutes: POST /refill
+
+adminRoutes->authMiddleware: verify JWT
+
+alt missing or invalid JWT
+    authMiddleware->errorHandler: next(Unauthorized)
+    errorHandler-->client: 401 Unauthorized
+else valid JWT
+    authMiddleware-->adminRoutes: next()
+
+    adminRoutes->roleMiddleware: require role "admin"
+
+    alt user is not admin
+        roleMiddleware->errorHandler: next(Forbidden)
+        errorHandler-->client: 403 Forbidden
+    else admin
+        roleMiddleware-->adminRoutes: next()
+
+        adminRoutes->refillValidatorMiddleware: refillSchema.parse(req.body)
+
+        alt invalid email or token amount
+            refillValidatorMiddleware->errorHandler: next(BadRequest)
+            errorHandler-->client: 400 Invalid refill data
+        else valid refill data
+            refillValidatorMiddleware-->adminRoutes: next()
+
+            adminRoutes->refillController: refill(req, res, next)
+            refillController->refillService: refill(email, tokens)
+
+            refillService->authRepository: findByEmail(email)
+            authRepository->MySQL: SELECT user WHERE email = ?
+            MySQL-->authRepository: User | undefined
+            authRepository-->refillService: User | undefined
+
+            alt user not found
+                refillService-->refillController: throw UserNotFound
+                refillController->errorHandler: next(err)
+                errorHandler-->client: 404 User not found
+            else user found
+                refillService->authRepository: incrementTokens(userId, tokens)
+                authRepository->MySQL: INCREMENT user.tokens by amount
+                authRepository->MySQL: RELOAD user
+                MySQL-->authRepository: updated User
+                authRepository-->refillService: updated User
+
+                refillService-->refillController: success + email + new token balance
+                refillController-->client: 200 OK + JSON
+            end
+        end
+    end
+end

@@ -5,59 +5,106 @@ client->gameRoutes: POST /game/:gameId/countermeasure
 gameRoutes->authMiddleware: verify JWT
 authMiddleware-->gameRoutes: next()
 
-gameRoutes->roleMiddleware: requireRole("user")
+gameRoutes->roleMiddleware: require role "user"
 roleMiddleware-->gameRoutes: next()
 
-gameRoutes->gameController: makeCountermeasure(req, res, next)
-gameController->gameController: countermeasureSchema.safeParse(req.body)
+gameRoutes->gameParamsMiddleware: validate gameId
 
-alt invalid countermeasure body
-    gameController->errorHandler: next(BadRequest)
-    errorHandler-->client: 400 Invalid countermeasure data
+alt invalid gameId
+    gameParamsMiddleware->errorHandler: next(BadRequest)
+    errorHandler-->client: 400 Invalid gameId
+else valid gameId
+    gameParamsMiddleware-->gameRoutes: next()
+
+    gameRoutes->gameCountermeasuresMiddleware: countermeasureSchema.parse(req.body)
+
+    alt invalid countermeasure body
+        gameCountermeasuresMiddleware->errorHandler: next(BadRequest)
+        errorHandler-->client: 400 Invalid countermeasure data
+    else valid countermeasure body
+        gameCountermeasuresMiddleware-->gameRoutes: next()
+
+        gameRoutes->gameController: makeCountermeasure(req, res, next)
+        gameController->gameController: countermeasureSchema.safeParse(req.body)
+
+        alt second validation fails
+            gameController->errorHandler: next(BadRequest)
+            errorHandler-->client: 400 Invalid countermeasure data
+        else body valid
+            gameController->gameService: performCountermeasure(gameId, userId, body)
+
+            gameService->Sequelize: withTransaction()
+            Sequelize->MySQL: Begin
+
+            gameService->gameService: loadForParticipant(gameId, userId, transaction, true)
+
+            gameService->gameRepository: findById(gameId, transaction, true)
+            gameRepository->MySQL: SELECT game and related data FOR UPDATE
+            MySQL-->gameRepository: persisted data | null
+            gameRepository->gameRepository: restore domain Game
+            gameRepository-->gameService: Game | undefined
+
+            alt game not found
+                gameService-->gameController: throw GameNotFound
+                Sequelize->MySQL: Rollback
+                gameController->errorHandler: next(err)
+                errorHandler-->client: 404 Game not found
+            else user is not participant
+                gameService-->gameController: throw Forbidden
+                Sequelize->MySQL: Rollback
+                gameController->errorHandler: next(err)
+                errorHandler-->client: 403 Forbidden
+            else participant
+                gameService->gameService: buildCountermeasure(game, body)
+
+                alt no pending action or incompatible countermeasure
+                    gameService-->gameController: throw BadRequest
+                    Sequelize->MySQL: Rollback
+                    gameController->errorHandler: next(err)
+                    errorHandler-->client: 400 Bad request
+                else compatible countermeasure
+                    gameService->GameEngine: executeCountermeasure(game, player, countermeasure)
+                    GameEngine->GameEngine: validate countermeasure
+
+                    alt countermeasure not allowed
+                        GameEngine-->gameService: throw error
+
+                        alt insufficient Energy
+                            gameService-->gameController: throw InsufficientEnergy
+                            Sequelize->MySQL: Rollback
+                            gameController->errorHandler: next(err)
+                            errorHandler-->client: 409 Insufficient Energy Credits
+                        else other invalid countermeasure
+                            gameService-->gameController: throw BadRequest
+                            Sequelize->MySQL: Rollback
+                            gameController->errorHandler: next(err)
+                            errorHandler-->client: 400 Bad request
+                        end
+                    else countermeasure allowed
+                        GameEngine->GameDomain: charge Energy/TOKEN
+
+                        alt RADIO_SILENCE
+                            GameEngine->GameDomain: decrement silence
+                        end
+                        GameEngine->GameDomain: apply countermeasure and resolve pending action
+                        gameService->gameService: handleAI(game, engine)
+
+                        alt game mode == "ai" and AI must continue
+                            gameService->AIPlayer: perform automatic AI response/turn when applicable
+                        end
+
+                        gameService->gameRepository: update(game, transaction)
+                        gameRepository->MySQL: UPDATE ...
+                        MySQL-->gameRepository: persisted
+                        gameRepository-->gameService: updated
+
+                        Sequelize->MySQL: Commit
+
+                        gameService-->gameController: countermeasure result + state + Energy + silence + Token
+                        gameController-->client: 200 OK + JSON
+                    end
+                end
+            end
+        end
+    end
 end
-
-gameController->gameService: performCountermeasure(gameId, userId, parsedBody)
-gameService->gameService: begin transaction
-
-gameService->gameRepository: findById(gameId, transaction, true)
-gameRepository->MySQL: SELECT game and related data FOR UPDATE
-MySQL-->gameRepository: persisted game data | null
-gameRepository->gameRepository: restore domain Game
-gameRepository-->gameService: Game | undefined
-
-alt game not found
-    gameService-->gameController: throw GameNotFound
-    gameController->errorHandler: next(err)
-    errorHandler-->client: 404 Game not found
-end
-
-gameService->gameService: verify userId is a participant
-
-alt user is not participant
-    gameService-->gameController: throw Forbidden
-    gameController->errorHandler: next(err)
-    errorHandler-->client: 403 Forbidden
-end
-
-gameService->gameService: buildCountermeasure(game, body)
-gameService->gameService: use pending action as countermeasure target
-
-gameService->GameEngine: executeCountermeasure(game, player, countermeasure)
-
-alt countermeasure not allowed
-    GameEngine-->gameService: throw countermeasure error
-    gameService-->gameController: throw BadRequest
-    gameController->errorHandler: next(err)
-    errorHandler-->client: error response
-end
-
-GameEngine-->gameService: countermeasure result
-
-gameService->gameRepository: update(game, transaction)
-gameRepository->MySQL: UPDATE game, Energy, TOKEN, silence, pending and history
-MySQL-->gameRepository: persisted
-gameRepository-->gameService: updated
-
-gameService->gameService: commit transaction
-gameService-->gameController: countermeasure response
-gameController-->client: 200 OK + JSON

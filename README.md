@@ -2,7 +2,7 @@
 
 Backend REST per una battaglia navale tridimensionale, sviluppato per l'esame di **Programmazione Avanzata**.
 
-Gli utenti si registrano, ottengono un JWT e giocano partite su una griglia 3D contro un altro utente o contro un'intelligenza artificiale. Ogni azione consuma Energy Credits (la risorsa della singola partita) e TOKEN (la risorsa economica dell'utente). Lo stato di gioco, lo storico delle mosse e i saldi vengono salvati su MySQL, quindi una partita può essere ripresa a ogni richiesta.
+Gli utenti si registrano, ottengono un JWT e giocano partite su una griglia 3D contro un altro utente o contro un'intelligenza artificiale. Ogni azione consuma Energy Credits (la risorsa della singola partita), mentre i token sono separati dall'utente.
 
 Repository: https://github.com/chrpccnn/progettoPA_Piccinini_Quattrini/tree/main
 
@@ -96,7 +96,7 @@ progettoPA_Piccinini_Quattrini/
 │   ├── app.ts                # configurazione di Express
 │   └── server.ts             # avvio, connessione al DB, sync delle tabelle
 ├── tests/                    # test Jest
-├── Sequence Diagrams/        # immagini dei diagrammi
+├── Sequence Diagrams/        # immagini dei diagrammi UML
 ├── jwtRS256.key.pub          # chiave pubblica per verificare i JWT
 ├── Dockerfile
 ├── docker-compose.yaml
@@ -154,7 +154,7 @@ Client / Postman
 - `user`: un utente gioca contro un altro utente.
 - `ai`: un utente gioca contro l'IA.
 
-Nelle partite PvP il creatore indica l'email dell'avversario, che deve esistere ed essere diverso dal creatore. Un utente non può partecipare a più partite non ancora finite: sia il creatore sia l'avversario vengono controllati alla creazione, con le righe degli utenti bloccate nella transazione per evitare creazioni simultanee.
+Nelle partite PvP il creatore indica l'email dell'avversario, che deve esistere ed essere diverso dal creatore. Un utente non può partecipare a più partite non ancora finite: sia il creatore sia l'avversario devono essere liberi.
 
 La modalità si indica nel body di `POST /game` e viene validata con Zod. Nel caso AI il service crea un `AIPlayer` con una `AIStrategy`.
 
@@ -167,7 +167,7 @@ base X/Y: 10
 profondità Z: 5
 ```
 
-Ogni dimensione può essere scelta tra 5 e 20 (`grid.grid_base` per X e Y, `grid.grid_height` per Z). La griglia è creata da `GridFactory`, le coordinate sono istanze di `Coordinates`, e il repository ricostruisce la griglia quando una partita viene caricata dal database.
+Ogni dimensione può essere scelta tra 5 e 20 (`grid.grid_base` per X e Y, `grid.grid_height` per Z). La griglia è creata da `GridFactory`, le coordinate sono istanze di `Coordinates`, e il repository salva lo stato delle celle.
 
 ## 4.3 Navi, flotta e orientamenti
 
@@ -178,15 +178,15 @@ Ogni dimensione può essere scelta tra 5 e 20 (`grid.grid_base` per X e Y, `grid
 | Scout | 2 celle | 2 | 4 |
 | Drone | 1 cella | 2 | 5 |
 
-Ogni tipo deve comparire almeno una volta. Le navi si sviluppano lungo gli orientamenti ammessi dalla partita (`HORIZONTAL` lungo x, `VERTICAL` lungo y, `DEPTH` lungo z), devono stare per intero nella griglia e non possono sovrapporsi.
+Ogni tipo deve comparire almeno una volta. Le navi si sviluppano lungo gli orientamenti ammessi dalla partita (`HORIZONTAL` lungo x, `VERTICAL` lungo y, `DEPTH` lungo z), devono stare per intero dentro la griglia e non possono sovrapporsi.
 
-Le flotte vengono piazzate a caso alla creazione, con la stessa composizione per i due giocatori. Il creatore può inoltre indicare in `placements` la posizione di alcune sue navi (coordinate di partenza e orientamento): quelle vengono piazzate a mano, le restanti a caso. L'avversario, umano o IA, ha sempre la flotta casuale.
+Le flotte vengono piazzate a caso alla creazione, con la stessa composizione per i due giocatori. Il creatore può inoltre indicare in `placements` la posizione di alcune sue navi (coordinate di partenza e orientamento).
 
 ## 4.4 Turni
 
-Durante il proprio turno un giocatore esegue al massimo una azione principale: `ATTACK`, `SCAN`, `SHIELD` o `MOVE`. Se un'azione viene rifiutata (energia insufficiente, coordinate non valide, ...) il turno resta al giocatore e non viene addebitato nulla.
+Durante il proprio turno un giocatore esegue al massimo una azione principale: `ATTACK`, `SCAN`, `SHIELD` o `MOVE`. Se un'azione viene rifiutata (energia insufficiente, coordinate non valide, ...), la partita non avanza e il client riceve un errore 400/409.
 
-`ATTACK` e `SCAN` aprono una finestra in cui l'avversario può rispondere con una contromisura oppure fare `PASS`. `Game` tiene turno e giocatore corrente, `GameEngine` controlla che l'azione arrivi dal giocatore giusto e fa avanzare il turno. Chi riceve il turno recupera Energy.
+`ATTACK` e `SCAN` aprono una finestra in cui l'avversario può rispondere con una contromisura oppure fare `PASS`. `Game` tiene turno e giocatore corrente, `GameEngine` controlla che l'azione arrivi nel momento giusto e applica le regole di energia e costi.
 
 ## 4.5 ATTACK
 
@@ -205,17 +205,17 @@ L'attacco non viene risolto subito: resta come pending action finché l'avversar
 
 ## 4.6 SCAN
 
-Analizza il cubo 3x3x3 centrato sulla coordinata indicata e restituisce il numero di celle occupate dalle navi avversarie (anche quelle già colpite). Costa 2 Energy. Il centro deve distare almeno una cella da ogni bordo della griglia.
+Analizza il cubo 3x3x3 centrato sulla coordinata indicata e restituisce il numero di celle occupate dalle navi avversarie (anche quelle già colpite). Costa 2 Energy. Il centro deve distare almeno 1 cella dal bordo.
 
 La scansione viene calcolata subito e resta pending, così `AlterScan` può modificarne il risultato prima che il turno prosegua.
 
 ## 4.7 SHIELD
 
-Protegge una cella del giocatore, anche vuota, fino a che non assorbe un colpo. Costa 2 Energy, ha effetto immediato, non apre finestre di contromisura e passa il turno. Al massimo uno scudo per cella.
+Protegge una cella del giocatore, anche vuota, fino a che non assorbe un colpo. Costa 2 Energy, ha effetto immediato, non apre finestre di contromisura e passa il turno. Al massimo uno scudo per cella può essere attivo.
 
 ## 4.8 MOVE
 
-Sposta di una cella un'intera nave. Costa 2 Energy. Possono muoversi solo `SCOUT` e `DRONE`, e solo se non sono mai state colpite. Lo spostamento non può uscire dalla griglia né finire su un'altra nave della stessa flotta.
+Sposta di una cella un'intera nave. Costa 2 Energy. Possono muoversi solo `SCOUT` e `DRONE`, e solo se non sono mai state colpite. Lo spostamento non può uscire dalla griglia né finire su una cella occupata da un'altra nave.
 
 ```json
 {
@@ -226,11 +226,11 @@ Sposta di una cella un'intera nave. Costa 2 Energy. Possono muoversi solo `SCOUT
 }
 ```
 
-Il `GameService` trasforma `axis` e `direction` nella coordinata di destinazione a partire dalla prima posizione della nave. `Move` controlla poi che lo spostamento sia di una cella e che la nuova posizione sia valida.
+Il `GameService` trasforma `axis` e `direction` nella coordinata di destinazione a partire dalla prima posizione della nave. `Move` controlla poi che lo spostamento sia di una cella e che la nuova posizioni non crei collisioni.
 
 ## 4.9 Pending action
 
-Dopo un `ATTACK` o uno `SCAN` il turno resta sospeso. L'avversario può usare una contromisura oppure fare `PASS`. Finché la pending action non è risolta nessun altro comando di gioco viene accettato. `GameRepository` salva la pending action nelle colonne dedicate della tabella `games`, quindi sopravvive al ricaricamento della partita.
+Dopo un `ATTACK` o uno `SCAN` il turno resta sospeso. L'avversario può usare una contromisura oppure fare `PASS`. Finché la pending action non è risolta nessun altro comando di gioco viene accettato.
 
 ## 4.10 Contromisure
 
@@ -240,17 +240,17 @@ Dopo un `ATTACK` o uno `SCAN` il turno resta sospeso. L'avversario può usare un
 | `RADIO_SILENCE` | Attack | 2 | l'attacco viene eseguito ma l'attaccante non vede l'esito |
 | `ALTER_SCAN` | Scan | 1 | il risultato della scansione cambia di una unità (se era 0 diventa 1) |
 
-Si inviano con `POST /game/:gameId/countermeasure`. Il controller valida il tipo, il service recupera la pending action reale e costruisce la contromisura compatibile, il `GameEngine` controlla giocatore autorizzato, compatibilità, Energy e silence.
+Si inviano con `POST /game/:gameId/countermeasure`. Il controller valida il tipo, il service recupera la pending action reale e costruisce la contromisura compatibile, il `GameEngine` controlla che la contromisura sia legittima e la applica.
 
 ## 4.11 RadioSilence e silence
 
-`RadioSilence` usa una risorsa limitata, `silence`, configurabile da 0 a 5 (default 3) per ogni giocatore. Ogni utilizzo la decrementa e a 0 la contromisura non è più disponibile. Il parametro esiste solo nelle partite PvP: nelle partite contro l'IA vale 0.
+`RadioSilence` usa una risorsa limitata, `silence`, configurabile da 0 a 5 (default 3) per ogni giocatore. Ogni utilizzo la decrementa e a 0 la contromisura non è più disponibile. Il parametro viene salvato in partita e ricaricato insieme allo stato.
 
 L'esito di un attacco sotto Radio Silence compare come `HIDDEN` nello storico dell'attaccante finché la partita non è finita.
 
 ## 4.12 PASS
 
-L'avversario rinuncia alla contromisura. La pending action viene risolta normalmente (un attacco viene eseguito, una scansione è già stata calcolata) e il turno prosegue. Il giocatore che ha generato l'azione non può fare `PASS`.
+L'avversario rinuncia alla contromisura. La pending action viene risolta normalmente (un attacco viene eseguito, una scansione è già stata calcolata) e il turno prosegue. Il giocatore che ha generato l'azione non paga ulteriori costi, ma il passatore paga sempre la contromisura assente o il costo di pass.
 
 ## 4.13 Energy Credits
 
@@ -260,7 +260,7 @@ Energy massima:        6
 Rigenerazione turno:  +2
 ```
 
-I tre valori sono configurabili alla creazione (`energy.initial`, `energy.max`, `energy.regeneration`, con `initial` non superiore a `max`). L'Energy non supera mai il massimo e un'operazione senza Energy sufficiente viene rifiutata con errore 409. Il valore corrente di ogni giocatore è persistito.
+I tre valori sono configurabili alla creazione (`energy.initial`, `energy.max`, `energy.regeneration`, con `initial` non superiore a `max`). L'Energy non supera mai il massimo e un'operazione senza abbastanza energia viene rifiutata.
 
 ## 4.14 TOKEN
 
@@ -283,7 +283,7 @@ Azione di gioco:   0.015 TOKEN
 WAITING -> RUNNING -> FINISHED
 ```
 
-La partita nasce già avviata (`RUNNING`) e termina quando un attacco distrugge l'ultima nave avversaria. Il vincitore viene salvato. `GET /game/:gameId/state` restituisce turno, giocatore corrente, pending action, Energy, silence residui e stato delle navi. Le coordinate delle navi compaiono solo per la flotta di chi fa la richiesta.
+La partita nasce già avviata (`RUNNING`) e termina quando un attacco distrugge l'ultima nave avversaria. Il vincitore viene salvato. `GET /game/:gameId/state` restituisce turno, giocatore corrente, pending action, Energy, silence e stato delle navi.
 
 ## 4.16 Storico delle mosse
 
@@ -297,11 +297,11 @@ Lo storico è di sola aggiunta: a ogni salvataggio vengono inserite solo le moss
 
 ## 4.17 Persistenza e concorrenza
 
-`GameRepository.update()` salva lo stato dopo ogni richiesta e `findById()` lo ricostruisce. Le operazioni che modificano la partita avvengono in una transazione, con la riga della partita bloccata (`SELECT ... FOR UPDATE`) per evitare che due richieste simultanee si sovrascrivano. Se una richiesta fallisce, la transazione viene annullata e né lo stato né i saldi cambiano.
+`GameRepository.update()` salva lo stato dopo ogni richiesta e `findById()` lo ricostruisce. Le operazioni che modificano la partita avvengono in una transazione, con la riga della partita bloccata per evitare race condition.
 
 ## 4.18 Partite contro l'IA
 
-Dopo ogni richiesta dell'utente il service fa giocare l'IA: se c'è una pending action da parte dell'utente l'IA risponde (contromisura o `PASS`), poi, se tocca a lei, gioca il turno. `AIStrategy` sceglie tra attacco, scansione, spostamento e scudo con pesi diversi, evita di ripetere attacchi sulla stessa cella e dà meno peso alle azioni costose quando l'Energy è bassa. Se non ha Energy per nessuna azione salta il turno.
+Dopo ogni richiesta dell'utente il service fa giocare l'IA: se c'è una pending action da parte dell'utente l'IA risponde (contromisura o `PASS`), poi, se tocca a lei, gioca il turno. `AIStrategy` calcola la migliore mossa possibile in base allo stato di gioco.
 
 ## 4.19 Rotte
 
@@ -400,7 +400,7 @@ Registra un nuovo utente, sempre con ruolo `user`. Il service controlla che l'em
 - Parametri: `email` e `password`
 - Restituisce: `id`, `email` e `role`
 
-<img src="./Sequence%20Diagrams/SD%20register.png" height="500" alt="diagramma"/>
+<img src="./Sequence%20Diagrams/SD%20auth-register.png" height="500" alt="diagramma"/>
 
 ### POST /auth/login
 
@@ -409,7 +409,7 @@ Verifica le credenziali e rilascia il JWT firmato con la chiave privata.
 - Parametri: `email` e `password`
 - Restituisce: `token` e i dati dell'utente (`id`, `email`, `role`)
 
-<img src="./Sequence%20Diagrams/SD%20login.png" height="500" alt="diagramma"/>
+<img src="./Sequence%20Diagrams/SD%20auth-login.png" height="500" alt="diagramma"/>
 
 ### POST /game
 
@@ -462,11 +462,23 @@ Restituisce lo storico delle mosse in CSV, con gli esiti nascosti da Radio Silen
 
 <img src="./Sequence%20Diagrams/SD%20history.png" height="500" alt="diagramma"/>
 
+### POST /refill
+
+Ricarica i TOKEN di un utente con privilegi di admin, verifica il saldo destinazione e salva il nuovo totale in database.
+
+<img src="./Sequence%20Diagrams/SD%20refill.png" height="500" alt="diagramma"/>
+
+## 5.3 Diagramma delle classi
+
+<img src="./Sequence%20Diagrams/ClassDiagram.png" height="600" alt="diagramma delle classi"/>
+
+Mostra le relazioni tra le classi principali del dominio: `Game`, `GameEngine`, `GameService`, `GameRepository`, `Fleet`, `Grid`, `Ship`, `Coordinates`, `Player`, `Action` e `Countermeasure`.
+
 ---
 
 # 6. Design pattern utilizzati
 
-Per ogni pattern utilizzato viene riportata sia la struttura classica che quella presente nel progetto. 
+Per ogni pattern utilizzato viene riportata sia la struttura classica che quella presente nel progetto.
 
 | Pattern | Famiglia | Dove si trova |
 |---|---|---|
@@ -482,7 +494,7 @@ Per ogni pattern utilizzato viene riportata sia la struttura classica che quella
 
 ## 6.1 Singleton
 
-**Struttura classica.** Una classe con costruttore privato, un campo statico che conserva l'unica istanza e un metodo statico `getInstance()` che la crea alla prima chiamata e la restituisce nelle successive. Chi la usa non può fare `new`, quindi tutti ottengono lo stesso oggetto. Lo scopo è garantire una sola istanza e un unico punto di accesso.
+**Struttura classica.** Una classe con costruttore privato, un campo statico che conserva l'unica istanza e un metodo statico `getInstance()` che la crea alla prima chiamata e la restituisce nell'intera applicazione.
 
 **Nel progetto.** `GameEngine` è un Singleton:
 
@@ -502,19 +514,18 @@ export class GameEngine {
     }
 ```
 
-`GameService` lo ottiene con `GameEngine.getInstance()` in `performAction`, `performCountermeasure` e `passCountermeasure`. Ha senso un'istanza sola perché il motore non conserva dati di nessuna partita: lo stato sta in `Game`, il motore riceve ogni volta `game` e `player` come parametri. Il test `GameEngine.test.ts` verifica che due chiamate a `getInstance()` restituiscano lo stesso oggetto.
+`GameService` lo ottiene con `GameEngine.getInstance()` in `performAction`, `performCountermeasure` e `passCountermeasure`. Ha senso un'istanza sola perché il motore non conserva dati di nessuna partita; calcola e applica le regole in modo stateless.
 
-**Differenze.** Le versioni classiche per linguaggi multithread usano un lock per evitare che due thread creino due istanze. In Node.js il codice gira su un solo thread, quindi l'inizializzazione pigra senza lock è sicura.
+**Differenze.** Le versioni classiche per linguaggi multithread usano un lock per evitare che due thread creino due istanze. In Node.js il codice gira su un solo thread, quindi l'inizializzazione non richiede sincronizzazione aggiuntiva.
 
 ## 6.2 Factory
 
-**Struttura classica.** Il pattern *Factory Method* prevede un `Creator` che dichiara un metodo di creazione e usa i prodotti attraverso un'interfaccia `Product`. Le sottoclassi (`ConcreteCreator`) sovrascrivono il metodo e restituiscono prodotti concreti diversi (`ConcreteProduct`). Il codice del creator non conosce la classe concreta che sta usando.
+**Struttura classica.** Il pattern *Factory Method* prevede un `Creator` che dichiara un metodo di creazione e usa i prodotti attraverso un'interfaccia `Product`. Le sottoclassi (`ConcreteCreator`) cambiano il tipo concreto creato.
 
+**Nel progetto.**
 
-**Nel progetto.** 
-
-- `GridFactory.create(width, height, depth)` restituisce un oggetto di tipo `Grid` (l'interfaccia) e nasconde la classe concreta `MapGrid`. `GameService` e `GameRepository` dipendono solo da `Grid`, quindi cambiare implementazione richiede di toccare solo la factory.
-- `FleetFactory` costruisce le flotte. `create()` piazza a caso tutte le navi di una configurazione senza sovrapposizioni, `shipAt()` crea una nave in una posizione scelta controllando limiti della griglia e collisioni, `placeRandom()` piazza una singola nave. Per il creatore della partita `GameService` combina `shipAt()` (navi indicate in `placements`) e `placeRandom()` (le restanti).
+- `GridFactory.create(width, height, depth)` restituisce un oggetto di tipo `Grid` (l'interfaccia) e nasconde la classe concreta `MapGrid`. `GameService` e `GameRepository` dipendono solo da `Grid`.
+- `FleetFactory` costruisce le flotte. `create()` piazza a caso tutte le navi di una configurazione senza sovrapposizioni, `shipAt()` crea una nave in una posizione scelta controllando limiti del campo.
 - `ErrorFactory` crea gli `AppError` con messaggio e codice HTTP già abbinati, per esempio `ErrorFactory.gameNotFound()` (404) o `ErrorFactory.forbidden()` (403).
 
 ```ts
@@ -527,7 +538,7 @@ const grid = GridFactory.create(
 
 ## 6.3 Flyweight
 
-**Struttura classica.** Il Flyweight serve a risparmiare memoria quando servono moltissimi oggetti simili. Lo stato di ogni oggetto si divide in due parti. Lo stato *intrinseco* (immutabile, uguale per molti oggetti) resta dentro il flyweight, che viene condiviso. Lo stato *estrinseco* (specifico di ogni uso) sta fuori, di solito nel contenitore che aggrega gli oggetti, e viene passato al flyweight quando serve. Una `FlyweightFactory` gestisce il pool: prima di creare un oggetto controlla se ne esiste già uno con lo stesso stato intrinseco e, se c'è, lo restituisce. I client ottengono i flyweight solo dalla factory. Il metodo factory può anche essere statico e stare dentro la classe flyweight.
+**Struttura classica.** Il Flyweight serve a risparmiare memoria quando servono moltissimi oggetti simili. Lo stato di ogni oggetto si divide in due parti. Lo stato *intrinseco* (immutabile, uguale per tutte le istanze) è condiviso; lo stato *estrinseco* è salvato fuori dal flyweight.
 
 **Nel progetto.** `Coordinates` e `Cell` hanno costruttore privato, una mappa statica di istanze e un metodo `create()` che restituisce l'oggetto già esistente per la stessa chiave:
 
@@ -549,7 +560,7 @@ public static create(x: number, y: number, z: number): Coordinates {
 }
 ```
 
-La separazione tra stato intrinseco ed estrinseco si vede bene in `Cell` e `MapGrid`. La `Cell` conserva solo le proprie coordinate (stato intrinseco, condiviso). Lo stato della cella (`EMPTY`, `OCCUPIED`, `HIT`, `MISS`) è estrinseco e lo tiene `MapGrid` in una mappa `Map<Cell, CellState>`, dove compaiono solo le celle che non sono vuote.
+La separazione tra stato intrinseco ed estrinseco si vede bene in `Cell` e `MapGrid`. La `Cell` conserva solo le proprie coordinate (stato intrinseco, condiviso). Lo stato della cella (`EMPTY`, `SHIP`, `HIT`, etc.) è invece contenuto in `MapGrid`.
 
 ```mermaid
 classDiagram
@@ -596,7 +607,7 @@ Avere le richieste come oggetti permette di metterle in coda, registrarle, riman
 | Invoker | `GameEngine` |
 | Client | `GameService` |
 
-I parametri della richiesta sono nel costruttore del comando: `new Attack(coordinates)`, `new Move(ship, destination)`, `new CancelAttack(attack)`. `GameService.buildAction()` traduce il JSON ricevuto in un comando, e questo è il lavoro del client:
+I parametri della richiesta sono nel costruttore del comando: `new Attack(coordinates)`, `new Move(ship, destination)`, `new CancelAttack(attack)`. `GameService.buildAction()` traduce il JSON ricevuto in un'istanza del comando giusto.
 
 ```ts
 case "ATTACK":
@@ -609,7 +620,7 @@ case "ATTACK":
     );
 ```
 
-`GameEngine` fa da invoker: riceve un `IAction` qualunque, controlla turno ed Energy con `getCost()`, esegue il comando con `execute({ game, player })`, addebita i costi e scrive la mossa nello storico. Non contiene la logica specifica di nessuna azione, che sta dentro le singole classi:
+`GameEngine` fa da invoker: riceve un `IAction` qualunque, controlla turno ed Energy con `getCost()`, esegue il comando con `execute({ game, player })`, addebita i costi e scrive la mossa nello storico.
 
 ```ts
 // GameEngine.executeAction
@@ -619,7 +630,7 @@ game.recordMove({ player, type: ..., cost: action.getCost(), ... });
 game.nextTurn();
 ```
 
-Lo storico di `Game.history` è il registro delle operazioni eseguite, uno degli usi tipici del pattern. Aggiungere una nuova azione significa scrivere una classe che implementa `IAction`, senza modificare il motore, e ogni comando si testa da solo (`Actions.test.ts`, `Countermeasures.test.ts`).
+Lo storico di `Game.history` è il registro delle operazioni eseguite, uno degli usi tipici del pattern. Aggiungere una nuova azione significa scrivere una classe che implementa `IAction`, senza toccare il motor di gioco.
 
 ```mermaid
 classDiagram
@@ -667,7 +678,7 @@ classDiagram
 
 ## 6.5 Strategy
 
-**Struttura classica.** Un oggetto `Context` ha un riferimento a un oggetto `Strategy` e gli delega una parte del lavoro. `Strategy` è un'interfaccia che dichiara il metodo dell'algoritmo, le `ConcreteStrategy` ne sono le varianti intercambiabili. Il `Client` sceglie la strategia e la passa al context, in genere dal costruttore, a volte con un setter per cambiarla durante l'esecuzione. Il context non conosce la classe concreta.
+**Struttura classica.** Un oggetto `Context` ha un riferimento a un oggetto `Strategy` e gli delega una parte del lavoro. `Strategy` è un'interfaccia che dichiara il metodo dell'algoritmo, le `ConcreteStrategy` implementano diverse varianti del comportamento.
 
 **Nel progetto.**
 
@@ -689,7 +700,7 @@ public respondToPendingAction(game: Game, engine: GameEngine): void {
 }
 ```
 
-`AIStrategy` contiene l'algoritmo: costruisce l'elenco di attacchi, scansioni, spostamenti e scudi possibili, li pesa (l'attacco ha il peso maggiore, le altre mosse ne hanno meno quando l'Energy è bassa), ne sceglie una a caso in base ai pesi ed evita di attaccare due volte la stessa cella. Se non ha Energy per nessuna mossa salta il turno. Quando deve rispondere a una pending action decide con una probabilità se usare `CancelAttack`, `AlterScan` oppure fare `PASS`.
+`AIStrategy` contiene l'algoritmo: costruisce l'elenco di attacchi, scansioni, spostamenti e scudi possibili, li pesa (l'attacco ha il peso maggiore, le altre mosse ne hanno meno quando l'Energy è basso) e applica la scelta migliore.
 
 ```mermaid
 classDiagram
@@ -707,13 +718,13 @@ classDiagram
     GameService ..> AIPlayer : crea con new AIStrategy
 ```
 
-**Sviluppi futuri** Oggi esiste un solo algoritmo e `AIStrategy` è una classe concreta, senza interfaccia. Il meccanismo del pattern c'è (iniezione dal costruttore e delega), ma per averlo come nel modello classico basterebbe estrarre un'interfaccia `IAIStrategy` implementata da `AIStrategy` e da eventuali altre strategie (per esempio una completamente casuale), lasciando `AIPlayer` invariato.
+**Sviluppi futuri** Oggi esiste un solo algoritmo e `AIStrategy` è una classe concreta, senza interfaccia. Il meccanismo del pattern c'è (iniezione dal costruttore e delega), ma per averlo pienamente "classico" servirebbe un'interfaccia `IAIStrategy` e una famiglia di strategie alternative.
 
 ## 6.6 Chain of Responsibility
 
-**Struttura classica.** Una richiesta passa lungo una catena di handler. Tutti seguono la stessa interfaccia (`handle()` e `setNext()`): ogni handler decide se gestire la richiesta oppure passarla al successivo. Il client costruisce la catena e manda la richiesta al primo anello, senza sapere chi la gestirà.
+**Struttura classica.** Una richiesta passa lungo una catena di handler. Tutti seguono la stessa interfaccia (`handle()` e `setNext()`): ogni handler decide se gestire la richiesta oppure passare il controllo al successivo.
 
-Esiste anche la versione dei middleware HTTP, la più diffusa nei framework web. Qui il senso è un po' rovesciato: ogni middleware esegue un controllo e lascia proseguire la richiesta, oppure la blocca, e solo l'ultimo anello (l'handler dell'applicazione) svolge il lavoro vero. Come gli oggetti sono collegati in catena, è comunque considerato un caso di Chain of Responsibility.
+Esiste anche la versione dei middleware HTTP, la più diffusa nei framework web. Qui il senso è un po' rovesciato: ogni middleware esegue un controllo e lascia proseguire la richiesta, oppure la interrompe se la richiesta non è valida.
 
 **Nel progetto.** I middleware di Express sono la catena.
 
@@ -745,9 +756,7 @@ Una richiesta a `POST /game/:gameId/action` attraversa nell'ordine:
 logger -> authMiddleware -> roleMiddleware("user") -> gameParamsMiddleware -> gameActionMiddleware -> makeAction
 ```
 
-Se il token manca, `authMiddleware` chiama `next(ErrorFactory.missingToken())`: gli anelli successivi non vengono eseguiti e la risposta 401 la scrive l'`errorHandler`. I controlli di autenticazione, ruolo e validazione non vengono ripetuti nei controller.
-
-
+Se il token manca, `authMiddleware` chiama `next(ErrorFactory.missingToken())`: gli anelli successivi non vengono eseguiti e la risposta 401 la scrive l'`errorHandler`. I controlli di autenticazione e autorizzazione sono quindi definiti separatamente ma concatenati nello stesso percorso.
 
 ## 6.10 Come collaborano
 
@@ -769,7 +778,7 @@ Se il token manca, `authMiddleware` chiama `next(ErrorFactory.missingToken())`: 
               |                v
               |             Database
               v
-     Command (Action, Countermeasure)
+       Command (Action, Countermeasure)
               |
               v
    Game, Fleet, Grid (Receiver)
@@ -858,7 +867,6 @@ Soluzione che è stata implementata per testare la logica di base del progetto, 
 
 # 8. Configurazione
 
-
 ## 8.2 Chiavi JWT
 
 I token sono firmati con RS256. La chiave privata va nel `.env`, quella pubblica nel file `jwtRS256.key.pub` nella root del progetto (letto da `src/jwtKey.ts`).
@@ -887,7 +895,7 @@ Il seed è idempotente: se un utente esiste già non viene toccato, quindi rilan
 | `player2@battleship.local` | user | 10 |
 | `broke@battleship.local` | user | 0 |
 
-L'ultimo serve per provare l'errore 401 per TOKEN insufficienti. La password dei tre `user` è `SEED_USER_PASSWORD` (default `Player123!`), quella dell'admin è `SEED_ADMIN_PASSWORD` (default `Admin123!`). Le password in registrazione devono avere almeno 8 caratteri con maiuscola, minuscola, numero e carattere speciale.
+L'ultimo serve per provare l'errore 401 per TOKEN insufficienti. La password dei tre `user` è `SEED_USER_PASSWORD` (default `Player123!`), quella dell'admin è `SEED_ADMIN_PASSWORD` (default `Admin123!`).
 
 ## 8.4 Database
 

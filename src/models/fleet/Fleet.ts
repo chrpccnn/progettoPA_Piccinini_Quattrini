@@ -1,3 +1,27 @@
+/*
+ * Questa classe rappresenta la flotta di un giocatore
+ * all'interno del gioco Space Battleship 3D.
+ *
+ * La flotta contiene un insieme di navi e ne gestisce
+ * l'aggiunta, la rimozione, la ricerca tramite identificativo
+ * e il conteggio in base alla tipologia.
+ *
+ * Il metodo addShip impedisce di inserire due navi con lo
+ * stesso identificativo e verifica che non sia stato superato
+ * il numero massimo consentito per il tipo di nave.
+ * Il metodo removeShip permette di rimuovere una nave
+ * specificandone l'identificativo e genera un errore se
+ * la nave richiesta non è presente nella flotta.
+ *
+ * Il metodo isAllDestroyed controlla invece che la flotta
+ * non sia vuota e che tutte le navi presenti siano distrutte.
+ * I metodi getShips e getShipById permettono di consultare
+ * le navi senza esporre direttamente l'array interno
+ * attraverso getShips.
+ *
+ * La classe costituisce quindi il punto centrale per
+ * mantenere e verificare la composizione della flotta.
+ */
 import { Ship } from "./Ship";
 import { MAX_SHIPS } from "./FleetConfig";
 import { ShipType } from "./ShipType";

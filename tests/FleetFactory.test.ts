@@ -1,3 +1,30 @@
+
+/**
+ * 
+ *
+ * SCOPO
+ * Verificare il comportamento di FleetFactory durante la creazione
+ * e il posizionamento delle navi sulla griglia tridimensionale.
+ *
+ * POSIZIONAMENTO MANUALE
+ * I test verificano che:
+ * - una nave venga posizionata nelle coordinate specificate;
+ * - le posizioni occupate corrispondano alla lunghezza della nave
+ *   e al suo orientamento;
+ * - venga mantenuto l'orientamento richiesto;
+ * - il posizionamento venga rifiutato se la nave uscirebbe dalla griglia;
+ * - il posizionamento venga rifiutato se le celle sono già occupate.
+ *
+ * COMPLETAMENTO CASUALE DELLA FLOTTA
+ * Un ulteriore test verifica che, dopo aver posizionato manualmente
+ * una nave, sia possibile collocarne un'altra casualmente senza
+ * sovrapporla alle celle già occupate.
+ *
+ * Il Set di coordinate occupate viene utilizzato per registrare
+ * le posizioni già assegnate e impedire collisioni tra le navi.
+ *
+ */
+
 import { FleetFactory } from "../src/models/fleet/FleetFactory";
 import { GridFactory } from "../src/models/grid/GridFactory";
 import { Coordinates } from "../src/models/grid/Coordinates";

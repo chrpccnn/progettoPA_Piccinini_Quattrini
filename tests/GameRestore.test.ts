@@ -1,3 +1,43 @@
+
+/**
+ *
+ * SCOPO
+ * Verificare che la classe Game possa ricostruire correttamente
+ * una partita già esistente a partire da GameRestoreData, come avviene
+ * quando GameRepository ricarica una partita dal database.
+ *
+ *
+ * DATI DI RIPRISTINO
+ * restoreData() prepara:
+ * - lo stato della partita;
+ * - l'indice del giocatore corrente;
+ * - il numero del turno;
+ * - gli utilizzi di silence dei giocatori;
+ * - le coordinate degli scudi attivi;
+ * - lo storico delle azioni;
+ * - un'azione in attesa di essere risolta;
+ * - il giocatore che ha eseguito l'azione in attesa.
+ *
+ * TEST DEL RIPRISTINO
+ * I test verificano che:
+ * - lo stato RUNNING e il turno vengano ripristinati correttamente;
+ * - gli utilizzi di silence e quelli rimanenti siano corretti;
+ * - gli scudi salvati risultino attivi nelle coordinate previste;
+ * - lo storico delle azioni venga recuperato;
+ * - l'azione pendente e il giocatore che l'ha eseguita siano ripristinati.
+ *
+ * CONTROLLO DEL SALDO
+ * Un test verifica che il ripristino di una partita già esistente
+ * non richieda nuovamente il saldo minimo necessario per crearne una.
+ *
+ * VALIDAZIONE DEL GIOCATORE CORRENTE
+ * Un test verifica che il ripristino venga rifiutato se l'indice
+ * del giocatore corrente non è valido.
+ *
+ * L'obiettivo è garantire la continuità della partita dopo il recupero
+ * dei dati salvati, senza perdere lo stato delle azioni e dei giocatori.
+ */
+
 import { Game, GameRestoreData } from "../src/models/Engine/Game";
 import { GameState } from "../src/models/Engine/GameState";
 import { Fleet } from "../src/models/fleet/Fleet";

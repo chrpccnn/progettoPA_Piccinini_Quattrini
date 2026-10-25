@@ -42,7 +42,6 @@ import {
 } from "../models/fleet/FleetConfig";
 import { FleetFactory } from "../models/fleet/FleetFactory";
 import { Orientation } from "../models/fleet/Orientation";
-import { Ship } from "../models/fleet/Ship";
 import { ShipType } from "../models/fleet/ShipType";
 
 import { Coordinates } from "../models/grid/Coordinates";
@@ -69,7 +68,6 @@ import {
 } from "./render";
 import { ActionType } from "../models/MoveRecord";
 import { User } from "../models/user";
-import { UserRole } from "../models/UserType";
 
 const INITIAL_TOKENS = 10;
 const ENERGY: EnergyConfig = { ...DEFAULT_ENERGY_CONFIG };

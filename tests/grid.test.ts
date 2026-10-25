@@ -1,4 +1,37 @@
 
+/**
+ *
+ * SCOPO
+ * Verificare la corretta creazione e gestione della griglia 3D,
+ * delle coordinate e delle celle utilizzate nel gioco.
+ *
+ * CREAZIONE
+ * I test verificano che:
+ * - GridFactory.create() generi una griglia con larghezza,
+ *   altezza e profondità specificate;
+ * - le dimensioni nulle, negative o non valide vengano rifiutate.
+ *
+ * VALIDITÀ DELLE COORDINATE
+ * I test controllano che:
+ * - le coordinate ai limiti validi della griglia siano accettate;
+ * - le coordinate negative o pari alle dimensioni massime
+ *   siano considerate esterne alla griglia.
+ *
+ * GESTIONE DELLE CELLE
+ * I test verificano che:
+ * - le stesse coordinate restituiscano la stessa istanza di Cell;
+ * - una griglia 10x10x5 contenga 500 celle distinte.
+ *
+ * STATO DELLE CELLE
+ * I test controllano che:
+ * - ogni cella inizi nello stato EMPTY;
+ * - sia possibile modificare lo stato di una cella, per esempio
+ *   impostandolo su OCCUPIED;
+ * - la modifica dello stato di una cella non alteri quello
+ *   delle altre celle.
+ *
+ */
+
 import { Cell, CellState } from "../src/models/grid/Cell";
 import { Coordinates } from "../src/models/grid/Coordinates";
 import { GridFactory } from "../src/models/grid/GridFactory";

@@ -1,3 +1,14 @@
+/*
+ * Rappresenta una posizione univoca nello spazio tridimensionale
+ * mediante le coordinate intere x, y e z.
+ *
+ * La classe impedisce la creazione diretta di istanze dall'esterno
+ * e utilizza il metodo statico create per validare le coordinate
+ * e riutilizzare l'istanza già esistente per la stessa posizione.
+ *
+ * Fornisce inoltre metodi per confrontare due posizioni e ottenere
+ * una rappresentazione testuale delle coordinate.
+ */
 export class Coordinates {
     private static readonly instances = new Map<string, Coordinates>();
 

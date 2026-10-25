@@ -1,3 +1,32 @@
+/*
+ * Questa classe implementa l'azione di movimento di una nave
+ * all'interno della griglia tridimensionale di gioco.
+ *
+ * Move estende BasicMove e riceve nel costruttore la nave
+ * da spostare e le coordinate della destinazione. Il costo
+ * dell'azione è pari a 2.
+ *
+ * Prima di eseguire lo spostamento, vengono effettuati
+ * diversi controlli di validità: la destinazione deve
+ * appartenere alla griglia, la nave deve essere di tipo
+ * Scout o Drone e deve appartenere alla flotta del giocatore
+ * che sta eseguendo l'azione.
+ *
+ * Una nave che ha già subito un colpo non può essere
+ * spostata. Inoltre, il movimento deve avvenire di una sola
+ * cella lungo uno dei tre assi, senza modificare la forma
+ * della nave.
+ *
+ * La classe calcola quindi le nuove posizioni di tutte
+ * le parti della nave, verifica che rimangano all'interno
+ * della griglia e controlla che non si sovrappongano
+ * alle posizioni occupate da altre navi della stessa flotta.
+ *
+ * Solo se tutti i controlli vengono superati, lo spostamento
+ * viene applicato tramite il metodo moveTo. In caso di
+ * violazione delle regole, viene sollevata un'eccezione
+ * descrittiva.
+ */
 import { Ship } from "../../fleet/Ship";
 import { ShipType } from "../../fleet/ShipType";
 import { Coordinates } from "../../grid/Coordinates";

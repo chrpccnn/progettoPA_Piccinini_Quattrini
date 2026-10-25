@@ -10,10 +10,8 @@ import sequelize from "../../config/database";
 import { Orientation } from "../fleet/Orientation";
 import { ShipStatus } from "../fleet/ShipStatus";
 import { ShipType } from "../fleet/ShipType";
-import e from "express";
-import { id, es } from "zod/locales";
 import { ShipPositionModel } from ".";
-import { Ship } from "../fleet/Ship";
+
 
  /*
  * Tabella "ships": le navi della flotta di un giocatore.

@@ -1,3 +1,26 @@
+/*
+ * Questa classe implementa l'azione di attacco di una nave
+ * all'interno del gioco Space Battleship 3D.
+ *
+ * Attack estende BasicMove e rappresenta un'azione associata
+ * a una specifica coordinata della griglia. Il costo
+ * dell'azione è pari a 1.
+ *
+ * Durante l'esecuzione, viene individuato il giocatore
+ * avversario e verificato se la coordinata scelta è protetta
+ * da uno scudo. Se lo scudo è presente, assorbe il colpo
+ * e viene consumato, senza provocare danni alla nave.
+ *
+ * Se la cella non è protetta, l'azione controlla le posizioni
+ * delle navi avversarie per determinare l'esito dell'attacco.
+ * In base al risultato, restituisce MISS se non viene colpita
+ * alcuna nave, HIT se una nave viene colpita, DESTROYED se
+ * una nave viene distrutta oppure GAME_OVER se tutte le navi
+ * della flotta avversaria risultano distrutte.
+ *
+ * Se non viene trovato un avversario, viene sollevata
+ * un'eccezione.
+ */
 import { Coordinates } from "../../grid/Coordinates";
 import { ActionContext } from "../ActionContext";
 import { BasicMove } from "../BasicMove";

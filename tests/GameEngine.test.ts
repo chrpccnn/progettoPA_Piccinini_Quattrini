@@ -1,3 +1,69 @@
+
+/**
+ *
+ * SCOPO
+ * Verificare che GameEngine gestisca correttamente l'esecuzione
+ * delle azioni, il consumo di energia e token, le azioni pendenti,
+ * la fase di contromisura e il passaggio del turno.
+ *
+ * SINGLETON
+ * Un test verifica che GameEngine.getInstance() restituisca sempre
+ * la stessa istanza del motore di gioco.
+ *
+ *
+ * ESECUZIONE DELLE AZIONI
+ * I test verificano che:
+ * - non sia possibile eseguire azioni se la partita non è RUNNING;
+ * - non sia possibile eseguire un'azione fuori dal proprio turno;
+ * - un giocatore senza energia sufficiente non possa eseguire l'azione;
+ * - Attack consumi 1 unità di energia;
+ * - Scan e Shield consumino 2 unità di energia;
+ * - Move consumi 2 unità di energia e aggiorni la posizione della nave.
+ *
+ * COSTI IN TOKEN
+ * I test verificano il consumo di 0,015 TOKEN per un'azione eseguita
+ * da un giocatore umano e per un'azione eseguita dall'AI, secondo
+ * il comportamento previsto dall'implementazione testata.
+ *
+ * AZIONI PENDENTI
+ * I test controllano che:
+ * - l'esecuzione di Attack crei un'azione pendente;
+ * - vengano memorizzati l'azione e il giocatore che l'ha eseguita;
+ * - il giocatore corrente non cambi immediatamente;
+ * - non sia possibile eseguire una seconda azione finché la prima
+ *   non è stata risolta.
+ *
+ * PASS
+ * I test verificano che:
+ * - PASS risolva un Attack quando non viene utilizzata una contromisura;
+ * - l'azione pendente venga rimossa;
+ * - il turno e l'energia vengano aggiornati correttamente;
+ * - il costo in token sia gestito per il giocatore umano e per l'AI;
+ * - il giocatore che ha creato l'azione non possa usare PASS
+ *   durante la fase di contromisura.
+ *
+ * CONTROMISURE
+ * I test verificano che:
+ * - CancelAttack annulli effettivamente l'attacco;
+ * - il costo energetico di CancelAttack venga applicato;
+ * - l'utilizzo di una contromisura consumi un utilizzo di silence;
+ * - RadioSilence esegua l'Attack e ne memorizzi il risultato;
+ * - AlterScan modifichi il risultato della scansione;
+ * - il risultato di AlterScan segua il comportamento attuale
+ *   anche quando il valore iniziale è zero.
+ *
+ * VALIDAZIONE DELLE CONTROMISURE
+ * I test verificano che una contromisura venga rifiutata quando:
+ * - viene utilizzata dal giocatore che ha eseguito l'azione originale;
+ * - non esiste un'azione pendente da contrastare;
+ * - il giocatore non dispone più di utilizzi di silence.
+ *
+ *
+ * L'obiettivo complessivo è verificare che GameEngine applichi
+ * correttamente le regole del turno, i costi delle azioni e la fase
+ * di risposta dell'avversario, mantenendo coerente lo stato della partita.
+ */
+
 import { Game } from "../src/models/Engine/Game";
 import { GameEngine } from "../src/models/Engine/GameEngine";
 import { Attack } from "../src/models/Action/BasicMove/Attack";
@@ -444,7 +510,7 @@ describe("GameEngine", () => {
                 .toBe(0.985);
         });
 
-        it("deve consumare 0 TOKEN per una mossa AI", () => {
+        it("deve consumare 0.015 TOKEN per la mossa AI", () => {
             const owner = createUser(1);
 
             const human = createHuman(

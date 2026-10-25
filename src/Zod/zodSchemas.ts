@@ -1,3 +1,16 @@
+/*
+ * Definisce gli schemi di validazione dei dati utilizzati
+ * dall'applicazione tramite la libreria Zod.
+ *
+ * Gli schemi descrivono i formati ammessi per autenticazione,
+ * utenti, parametri delle partite, configurazione della griglia,
+ * flotta, posizionamento delle navi, azioni, energia,
+ * contromisure e ricariche dei TOKEN.
+ *
+ * Vengono inoltre esportati i tipi TypeScript inferiti dagli schemi,
+ * così da mantenere coerenti la validazione dei dati in ingresso
+ * e i tipi utilizzati nel resto dell'applicazione.
+ */
 import * as z from "zod";
 import {
     DEFAULT_ENERGY_CONFIG

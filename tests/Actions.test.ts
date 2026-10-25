@@ -1,3 +1,54 @@
+
+/**
+ * 
+ *
+ * Actions.test.ts contiene i test automatici delle azioni principali del gioco
+ * Space Battleship 3D. I test verificano che le azioni funzionino
+ * correttamente, rispettino i costi energetici previsti e gestiscano
+ * gli errori quando vengono utilizzate in condizioni non valide.
+ *
+ * 
+ 
+ *
+ * TEST DELL'AZIONE ATTACK
+ * Verifica che:
+ * - il costo dell'attacco sia pari a 1;
+ * - un attacco su una cella vuota restituisca MISS;
+ * - un colpo su una nave non distrutta restituisca HIT;
+ * - la distruzione di una nave, quando ne restano altre, restituisca
+ *   DESTROYED;
+ * - la distruzione dell'ultima nave avversaria restituisca GAME_OVER;
+ * - l'azione generi un errore quando non è possibile trovare un avversario.
+ *
+ * TEST DELL'AZIONE SCAN
+ * Verifica che:
+ * - il costo della scansione sia pari a 2;
+ * - vengano contate le celle occupate dalle navi avversarie nel cubo 3x3x3
+ *   centrato sulle coordinate indicate;
+ * - vengano conteggiate anche le celle delle navi già colpite;
+ * - venga rifiutato un centro troppo vicino al bordo della griglia;
+ * - venga rifiutato un centro esterno alla griglia.
+ *
+ * TEST DELL'AZIONE SHIELD
+ * Verifica che:
+ * - il costo dello scudo sia pari a 2;
+ * - lo scudo risulti inattivo prima dell'esecuzione e attivo dopo execute();
+ * - l'azione venga rifiutata se le coordinate sono fuori dalla griglia.
+ *
+ * TEST DELL'AZIONE MOVE
+ * Verifica che:
+ * - il costo del movimento sia pari a 2;
+ * - una Drone possa spostarsi di una cella;
+ * - una Scout mantenga la propria forma durante lo spostamento;
+ * - le navi diverse da Scout e Drone non possano essere spostate;
+ * - non sia possibile raggiungere una destinazione fuori dalla griglia;
+ * - non sia possibile spostarsi di più di una cella per volta;
+ * - non sia possibile spostarsi su una cella occupata da un'altra nave;
+ * - una nave già colpita non possa essere spostata;
+ * - un giocatore non possa spostare una nave appartenente alla flotta
+ *   dell'avversario.
+ *
+ */
 import { Attack } from "../src/models/Action/BasicMove/Attack";
 import { AttackResult } from "../src/models/Action/BasicMove/AttackResult";
 import { Scan } from "../src/models/Action/BasicMove/Scan";
@@ -11,7 +62,6 @@ import { Orientation } from "../src/models/fleet/Orientation";
 import { HumanPlayer } from "../src/models/Players/HumanPlayer";
 import { GridFactory } from "../src/models/grid/GridFactory";
 import { Coordinates } from "../src/models/grid/Coordinates";
-import { CellState } from "../src/models/grid/Cell";
 import { User } from "../src/models/user";
 
 function createUser(id: number, tokens = 1): User {

@@ -1,3 +1,30 @@
+/*
+ * Questa classe implementa l'azione di scansione di una
+ * porzione della griglia tridimensionale di gioco.
+ *
+ * Scan estende BasicMove e riceve nel costruttore il centro
+ * della scansione. Il costo dell'azione è pari a 2.
+ *
+ * Prima di procedere, viene verificato che il centro sia
+ * valido e sufficientemente distante dai bordi della griglia.
+ * La scansione richiede infatti che intorno al centro esista
+ * un'area completa di celle adiacenti.
+ *
+ * Una volta individuato il giocatore avversario, la classe
+ * esamina le posizioni occupate dalle sue navi. Vengono
+ * conteggiate le posizioni che si trovano a una distanza
+ * massima di una cella dal centro lungo ciascuno dei tre assi,
+ * considerando quindi il volume tridimensionale circostante.
+ *
+ * Il numero di celle occupate individuate viene salvato
+ * nell'attributo occupiedCells ed è accessibile attraverso
+ * getOccupiedCells. Il metodo setOccupiedCells permette
+ * inoltre di modificare il risultato, ad esempio per
+ * consentire l'applicazione di una contromisura.
+ *
+ * Se il centro della scansione non è valido oppure non viene
+ * trovato un avversario, l'esecuzione termina con un'eccezione.
+ */
 import { Coordinates } from "../../grid/Coordinates";
 import { ActionContext } from "../ActionContext";
 import { BasicMove } from "../BasicMove";

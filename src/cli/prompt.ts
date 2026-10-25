@@ -8,8 +8,14 @@ export interface Option<T> {
 }
 
 /*
- * Input da terminale con una coda di righe: funziona sia in modo
- * interattivo sia con input da pipe (utile per test automatici).
+ * Gestisce l'acquisizione e la validazione degli input da terminale.
+ *
+ * Mantiene in coda le righe ricevute prima che una richiesta
+ * sia in attesa, così da supportare sia l'interazione diretta
+ * sia l'input reindirizzato da pipe nei test automatici.
+ *
+ * Fornisce metodi per leggere stringhe, numeri interi, conferme,
+ * scelte da menu e coordinate valide rispetto a una griglia.
  */
 export class Prompt {
 
@@ -123,9 +129,12 @@ export class Prompt {
     }
 
     /*
-     * Menu numerato. L'opzione 0 e' sempre disponibile se
-     * viene passato zeroLabel.
-     */
+    * Mostra un menu numerato e restituisce il valore associato
+    * all'opzione selezionata.
+    *
+    * Se viene fornito il parametro zero, aggiunge una scelta
+    * speciale identificata dal numero 0.
+ */
     public async choice<T>(
         title: string,
         options: Option<T>[],
@@ -166,10 +175,13 @@ export class Prompt {
         }
     }
 
-    /*
-     * Legge "x y z" oppure "x,y,z" e controlla che
-     * la cella sia dentro la griglia.
-     */
+ /*
+ * Legge tre coordinate intere separate da spazi, virgole
+ * o punti e virgola e verifica che la posizione risultante
+ * appartenga alla griglia.
+ *
+ * Se l'input non è valido, richiede nuovamente le coordinate.
+ */
     public async coordinates(
         question: string,
         grid: Grid

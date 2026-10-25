@@ -1,3 +1,16 @@
+/*
+ * Rappresenta una cella della griglia di gioco.
+ *
+ * Ogni cella è identificata dalle proprie coordinate tridimensionali
+ * e viene gestita tramite un meccanismo di istanziazione unica:
+ * il metodo statico create restituisce sempre la stessa istanza
+ * per coordinate equivalenti.
+ *
+ * Lo stato della cella (vuota, occupata, colpita o mancata) è gestito
+ * separatamente dalla classe Cell, attraverso CellState e dalla
+ * struttura dati utilizzata dalla griglia.
+ */
+
 import { Coordinates } from "./Coordinates";
 
 export enum CellState {
@@ -34,10 +47,6 @@ export class Cell {
         Cell.instances.set(key, cell);
 
         return cell;
-    }
-
-    public equals(other: Cell): boolean {
-        return this.coordinates.equals(other.coordinates);
     }
 
     public toString(): string {

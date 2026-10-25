@@ -1,4 +1,16 @@
-
+/*
+ * Rappresenta un giocatore controllato dall'intelligenza artificiale.
+ *
+ * La classe conserva l'identificativo del giocatore, la flotta,
+ * le risorse disponibili, gli utenti associati e la strategia utilizzata.
+ *
+ * Delega l'esecuzione delle mosse e delle contromisure a GameEngine,
+ * mentre affida alla strategia AI le decisioni relative al turno
+ * e alle risposte alle azioni in attesa.
+ *
+ * Gestisce inoltre l'incremento e il consumo dell'energia,
+ * applicando i controlli previsti sui valori delle risorse.
+ */
 import { IAction } from "../Action/IAction";
 import { Countermeasure } from "../Action/Countermeasure";
 import { Game } from "../Engine/Game";

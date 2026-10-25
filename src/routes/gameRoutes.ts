@@ -1,3 +1,15 @@
+/*
+ * Definisce le rotte HTTP per la gestione delle partite.
+ *
+ * Tutte le rotte del router richiedono autenticazione e ruolo "user".
+ * Ogni endpoint applica, quando necessario, i middleware specifici
+ * per validare i parametri della partita, le azioni o le contromisure.
+ *
+ * Le operazioni effettive vengono delegate al gameController:
+ * creazione della partita, consultazione dello stato, esecuzione
+ * delle mosse, gestione delle contromisure, passaggio del turno
+ * e consultazione dello storico.
+ */
 import { Router } from "express";
 import authMiddleware from "../middleware/authMiddleware";
 import { roleMiddleware } from "../middleware/roleMiddleware";

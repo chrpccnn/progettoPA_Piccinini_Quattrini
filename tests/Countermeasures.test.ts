@@ -1,3 +1,38 @@
+
+/**
+ * 
+ *
+ * SCOPO
+ * Verificare il corretto funzionamento delle contromisure utilizzabili
+ * durante una partita di Space Battleship 3D, controllandone il tipo,
+ * il costo, il riferimento all'azione originale e gli effetti prodotti.
+ *
+ * CANCELATTACK
+ * Verifica che la contromisura:
+ * - abbia tipo CANCEL_ATTACK;
+ * - abbia costo energetico pari a 2;
+ * - mantenga il riferimento all'Attack originale;
+ * - restituisca BLOCKER quando viene eseguita.
+ *
+ * ALTERSCAN
+ * Verifica che la contromisura:
+ * - abbia tipo ALTER_SCAN;
+ * - abbia costo energetico pari a 1;
+ * - mantenga il riferimento alla Scan originale;
+ * - diminuisca di una unità il numero di celle occupate rilevate;
+ * - gestisca anche il caso in cui il risultato iniziale sia zero,
+ *   secondo il comportamento attuale dell'implementazione.
+ *
+ * RADIOSILENCE
+ * Verifica che la contromisura:
+ * - abbia tipo RADIO_SILENCE;
+ * - abbia costo energetico pari a 2;
+ * - mantenga il riferimento all'Attack originale;
+ * - esegua l'attacco e ne memorizzi il risultato;
+ * - non abbia un risultato prima dell'esecuzione.
+ *
+ */
+
 import { CancelAttack } from "../src/models/Action/Countermeasure/CancelAttack";
 import { AlterScan } from "../src/models/Action/Countermeasure/AlterScan";
 

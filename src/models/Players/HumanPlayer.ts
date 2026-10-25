@@ -1,3 +1,18 @@
+/*
+ * Rappresenta un giocatore controllato da un utente umano.
+ *
+ * Conserva l'identificativo del giocatore, la flotta, le risorse,
+ * gli utenti associati e il riferimento all'utente di dominio.
+ *
+ * Delega a GameEngine l'esecuzione delle mosse e delle contromisure,
+ * mentre gestisce direttamente l'incremento e il consumo dell'energia,
+ * applicando i controlli sui valori ricevuti e sulla disponibilità
+ * delle risorse.
+ *
+ * Implementa il contratto IPlayer, consentendo al motore di gioco
+ * di interagire con giocatori umani e giocatori AI attraverso
+ * un'interfaccia comune.
+ */
 import { IAction } from "../Action/IAction";
 import { Countermeasure } from "../Action/Countermeasure";
 import { Game } from "../Engine/Game";

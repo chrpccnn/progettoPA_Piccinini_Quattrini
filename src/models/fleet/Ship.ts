@@ -1,3 +1,30 @@
+/*
+ * Questa classe rappresenta una singola nave della flotta
+ * all'interno del gioco Space Battleship 3D.
+ *
+ * Ogni nave possiede un identificativo univoco all'interno
+ * della flotta, una tipologia, una dimensione, un orientamento
+ * e un insieme di coordinate che ne definiscono la posizione
+ * sulla griglia tridimensionale. Il suo stato iniziale,
+ * se non specificato diversamente, è INTACT.
+ *
+ * Durante la costruzione, la classe verifica che la dimensione
+ * corrisponda a quella prevista per il tipo di nave e che
+ * il numero di coordinate sia corretto e privo di duplicati.
+ *
+ * Il metodo hit registra un colpo su una posizione appartenente
+ * alla nave. Le posizioni già colpite non vengono conteggiate
+ * una seconda volta; quando tutte le posizioni risultano
+ * colpite, lo stato della nave diventa DESTROYED, mentre
+ * un colpo non ancora sufficiente a distruggerla porta
+ * lo stato a DAMAGED.
+ *
+ * Il metodo moveTo consente di aggiornare le coordinate
+ * della nave, verificando che il numero di posizioni
+ * corrisponda alla dimensione prevista e che non vi siano
+ * coordinate duplicate.
+ *
+ */
 import { ShipType } from "./ShipType";
 import { Orientation } from "./Orientation";
 import { ShipStatus } from "./ShipStatus";

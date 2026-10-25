@@ -1,3 +1,40 @@
+
+/**
+ *
+ * SCOPO
+ * Verificare il comportamento dei middleware Express che controllano
+ * l'identità dell'utente tramite JWT e i permessi associati al suo ruolo.
+ *
+ * STRUMENTI UTILIZZATI
+ * - authMiddleware: verifica il token presente nella richiesta
+ *   e associa i dati dell'utente alla request.
+ * - roleMiddleware: controlla che l'utente abbia il ruolo richiesto.
+ * - jsonwebtoken: fornisce le funzioni per la verifica dei JWT.
+ * - jwtKey: permette di recuperare la chiave pubblica utilizzata
+ *   per verificare il token.
+ * - jest.spyOn(): consente di sostituire temporaneamente alcune funzioni
+ *   durante i test.
+ *
+ * AUTENTICAZIONE
+ * I test verificano che:
+ * - una richiesta senza token venga rifiutata con errore 401
+ *   e messaggio "Missing token";
+ * - un JWT valido venga accettato;
+ * - i dati dell'utente estratti dal token vengano salvati in req.user;
+ * - next() venga chiamato per proseguire la catena dei middleware
+ *   quando l'autenticazione ha esito positivo.
+ *
+ * AUTORIZZAZIONE PER RUOLO
+ * I test verificano che:
+ * - un utente con il ruolo richiesto possa proseguire;
+ * - un utente con un ruolo non autorizzato riceva un errore 403
+ *   con messaggio "Forbidden".
+ *
+ *
+ * Questi test controllano quindi la gestione degli accessi protetti
+ * e la corretta distinzione tra autenticazione e autorizzazione.
+ */
+
 import { NextFunction, Response } from "express";
 import jwt from "jsonwebtoken";
 import authMiddleware, { AuthenticatedRequest } from "../src/middleware/authMiddleware";

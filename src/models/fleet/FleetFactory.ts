@@ -1,3 +1,29 @@
+/*
+ * Questa classe fornisce i metodi necessari per creare e
+ * posizionare le navi che compongono una flotta.
+ *
+ * FleetFactory permette sia di generare una flotta con
+ * posizionamento casuale, sia di creare una singola nave
+ * a partire da coordinate e orientamento scelti manualmente.
+ *
+ * Il metodo create verifica la configurazione della flotta,
+ * controlla che sia consentito almeno un orientamento e che
+ * la griglia abbia spazio sufficiente per ospitare tutte
+ * le navi. Le navi vengono elaborate in ordine di dimensione
+ * decrescente e posizionate senza sovrapposizioni, rispettando
+ * gli orientamenti consentiti e un limite massimo di tentativi.
+ *
+ * Il metodo placeRandom cerca invece una posizione valida
+ * generando casualmente orientamento e coordinate iniziali.
+ * Quando trova una disposizione libera, aggiunge le coordinate
+ * all'insieme occupied e restituisce la nave creata.
+ * Se non riesce a trovare una disposizione entro il numero
+ * massimo di tentativi, solleva un'eccezione.
+ *
+ * La classe centralizza quindi la logica di creazione
+ * e posizionamento delle navi, separandola dalla gestione
+ * della flotta e dalla rappresentazione delle singole navi.
+ */
 import { Coordinates } from "../grid/Coordinates";
 import { Grid } from "../grid/Igrid";
 import { Fleet } from "./Fleet";

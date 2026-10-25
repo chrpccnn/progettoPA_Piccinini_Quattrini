@@ -5,7 +5,14 @@ import { ShipType } from "../models/fleet/ShipType";
 import { IPlayer } from "../models/Players/IPlayer";
 import { HumanPlayer } from "../models/Players/HumanPlayer";
 import { MoveRecord } from "../models/MoveRecord";
-
+/*
+ * Contiene funzioni di supporto per la visualizzazione testuale
+ * della griglia, delle flotte e dello stato della partita.
+ *
+ * Le funzioni generano rappresentazioni leggibili da terminale
+ * e mostrano separatamente le informazioni della propria flotta
+ * e quelle conosciute sulla flotta avversaria.
+ */
 export const SHIP_LETTER: Record<ShipType, string> = {
     [ShipType.MOTHER_SHIP]: "M",
     [ShipType.CRUISER]: "C",
@@ -83,7 +90,15 @@ export function renderLayers(
 }
 
 /*
- * Celle di una flotta: lettera della nave, X se colpita.
+ * Crea una funzione che restituisce il simbolo da visualizzare
+ * per ogni cella della flotta.
+ *
+ * Le navi sono rappresentate con la lettera associata al loro
+ * tipo, mentre le celle colpite sono indicate con "X".
+ * Le celle protette da uno scudo sono visualizzate con "#"
+ * se vuote o colpite, oppure con la lettera minuscola della nave
+ * se occupate da una nave non colpita.
+ * Le celle senza navi e senza scudi sono rappresentate con ".".
  */
 export function fleetCell(
     player: IPlayer,
@@ -128,8 +143,16 @@ export function fleetCell(
 }
 
 /*
- * Cio' che un giocatore sa della flotta avversaria:
- * X colpo, o mancato, ? esito nascosto da radio silence.
+ * Crea una funzione che restituisce ciò che il giocatore conosce
+ * sulle celle della flotta avversaria.
+ *
+ * Il simbolo visualizzato dipende dai dati presenti nella mappa:
+ * gli esiti conosciuti vengono restituiti così come memorizzati,
+ * mentre le celle senza informazioni registrate sono indicate
+ * con ".".
+ *
+ * Gli eventuali esiti nascosti da Radio Silence vengono gestiti
+ * dalla logica che costruisce la mappa delle informazioni note.
  */
 export function knowledgeCell(
     known: Map<string, string>
@@ -240,7 +263,9 @@ export function dumpState(game: Game): string {
 }
 
 /*
- * Esiti reali degli attacchi nascosti da Radio Silence.
+ * Restituisce i record dello storico contrassegnati come nascosti,
+ * utilizzati per recuperare le informazioni non visibili durante
+ * l'effetto di Radio Silence.
  */
 export function hiddenResults(game: Game): MoveRecord[] {
     return game.getHistory().filter(r => r.hidden);

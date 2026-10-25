@@ -1,3 +1,15 @@
+/*
+ * Modello di dominio che rappresenta un utente dell'applicazione.
+ *
+ * Conserva i dati identificativi dell'utente, le informazioni
+ * di autenticazione e classificazione, la data di creazione
+ * e il saldo dei TOKEN.
+ *
+ * Fornisce operazioni per verificare la validità di alcuni dati
+ * e per modificare il saldo tramite incrementi e decrementi positivi.
+ * La persistenza viene delegata al livello repository, che si occupa
+ * della conversione tra questo oggetto e il modello del database.
+ */
 import { ErrorFactory } from "../errors/ErrorFactory";
 import {
     MailSchema,

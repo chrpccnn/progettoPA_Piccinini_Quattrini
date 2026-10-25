@@ -1,4 +1,20 @@
-
+/*
+ * Implementa la strategia decisionale del giocatore controllato
+ * dall'intelligenza artificiale.
+ *
+ * Durante il proprio turno verifica che la partita sia in corso,
+ * che il giocatore sia quello attivo e che non siano presenti
+ * azioni in attesa di risoluzione.
+ *
+ * Genera le azioni disponibili in base all'energia, allo stato
+ * della partita, alla flotta e alla cronologia delle azioni.
+ * Assegna un peso alle categorie di azione e seleziona casualmente
+ * una mossa in funzione dei pesi definiti.
+ *
+ * Gestisce inoltre le risposte alle azioni avversarie in attesa,
+ * scegliendo probabilisticamente se utilizzare una contromisura
+ * oppure passare.
+ */
 import { IAction } from "../Action/IAction";
 import { Attack } from "../Action/BasicMove/Attack";
 import { Move } from "../Action/BasicMove/Move";

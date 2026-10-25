@@ -1,3 +1,44 @@
+
+/**
+ *
+ * SCOPO
+ * Verificare il comportamento della classe Game, che rappresenta
+ * una partita e ne gestisce i giocatori, lo stato, i turni e il costo
+ * di creazione espresso in TOKEN.
+ *
+ *
+ * CREAZIONE DELLA PARTITA
+ * I test verificano che:
+ * - sia possibile creare una partita user-vs-user;
+ * - sia possibile creare una partita user-vs-AI;
+ * - la partita contenga esattamente due giocatori;
+ * - la creazione venga rifiutata con meno o più di due giocatori;
+ * - sia necessario disporre di almeno 0,30 TOKEN;
+ * - il saldo esattamente pari a 0,30 TOKEN venga accettato.
+ *
+ * COSTO DI CREAZIONE
+ * I test verificano che:
+ * - payCreationCost() sottragga 0,30 TOKEN dal saldo del proprietario;
+ * - il costo non venga sottratto automaticamente dal costruttore.
+ *
+ * STATO DELLA PARTITA
+ * I test verificano che:
+ * - una nuova partita inizi nello stato WAITING;
+ * - il metodo start() porti la partita nello stato RUNNING;
+ * - l'avvio inizializzi correttamente il turno e il giocatore corrente.
+ *
+ * GESTIONE DEI TURNI
+ * I test verificano che:
+ * - nextTurn() passi il controllo al giocatore successivo;
+ * - il numero del turno aumenti quando il controllo torna
+ *   al primo giocatore.
+ *
+ * SILENCE
+ * Un test controlla che sia possibile creare una partita user-vs-user
+ * specificando un numero iniziale di utilizzi di silence.
+ *
+ */
+
 import { Game } from "../src/models/Engine/Game";
 import { GameState } from "../src/models/Engine/GameState";
 import { Fleet } from "../src/models/fleet/Fleet";
